@@ -16,7 +16,13 @@ public enum Algorithm {
   MAC_ALGORITHM_HMAC_SHA_256_64(4, "HmacSHA256"),
   MAC_ALGORITHM_HMAC_SHA_256_256(5, "HmacSHA256"),
   MAC_ALGORITHM_HMAC_SHA_384_384(6, "HmacSHA384"),
-  MAC_ALGORITHM_HMAC_SHA_512_512(7, "HmacSHA512");
+  MAC_ALGORITHM_HMAC_SHA_512_512(7, "HmacSHA512"),
+
+  ENCRYPTION_AES_128_GCM(1, "AES"),
+  ENCRYPTION_AES_192_GCM(2, "AES"),
+  ENCRYPTION_AES_256_GCM(3, "AES"),
+
+  DIRECT_CEK_USAGE(-6, null);
 
   private final int algorithmId;
   private final String instance;

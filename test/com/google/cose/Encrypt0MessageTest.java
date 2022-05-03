@@ -4,7 +4,9 @@ import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.Headers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,7 +24,8 @@ public class Encrypt0MessageTest {
         TestUtilities.bytesToHexString(message.getCiphertext()));
     Assert.assertEquals("A10101",
         TestUtilities.bytesToHexString(message.getProtectedHeaderBytes()));
-    Assert.assertEquals(message.getUnprotectedHeaders().get(new UnsignedInteger(5)),
+    Assert.assertEquals(
+        message.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV)),
         new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")));
   }
 
@@ -30,9 +33,10 @@ public class Encrypt0MessageTest {
   public void testSerialize() {
     DataItem protectedHeaders = new Map();
     Map map = new Map();
-    map.put(new UnsignedInteger(1), new UnsignedInteger(1));
-    map.put(new UnsignedInteger(5), new ByteString(TestUtilities.hexStringToByteArray(
-        "02D1F7E6F26C43D4868D87CE")));
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.ENCRYPTION_AES_128_GCM.getAlgorithmId());
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV),
+        new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")));
     Encrypt0Message message = Encrypt0Message.builder()
         .withProtectedHeaderBytes(CborUtils.encode(protectedHeaders))
         .withUnprotectedHeaders(map)

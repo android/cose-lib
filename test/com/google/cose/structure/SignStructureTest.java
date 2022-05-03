@@ -1,6 +1,5 @@
 package com.google.cose.structure;
 
-import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
@@ -14,7 +13,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SignStructureTest {
   @Test
-  public void testHappyCase() {
+  public void testSignStructure() {
     String context = "Signature";
     Map protectedSignHeaders = new Map();
     protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
@@ -24,6 +23,18 @@ public class SignStructureTest {
         payload);
     Assert.assertEquals(
         "85695369676E61747572654043A101264054546869732069732074686520636F6E74656E742E",
+        TestUtilities.bytesToHexString(s.serialize())
+    );
+  }
+
+  @Test
+  public void testSign1Structure() {
+    String context = "Signature1";
+    byte[] externalAad = new byte[0];
+    byte[] payload = TestUtilities.CONTENT.getBytes();
+    SignStructure s = new SignStructure(context, new Map(), null, externalAad, payload);
+    Assert.assertEquals(
+        "846A5369676E617475726531404054546869732069732074686520636F6E74656E742E",
         TestUtilities.bytesToHexString(s.serialize())
     );
   }

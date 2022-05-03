@@ -2,7 +2,9 @@ package com.google.cose;
 
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.Headers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +29,8 @@ public class Mac0MessageTest {
   @Test
   public void testSerialize() {
     Map map = new Map();
-    map.put(new UnsignedInteger(1), new UnsignedInteger(5));
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());
     Mac0Message message = Mac0Message.builder()
         .withProtectedHeaderBytes(CborUtils.encode(map))
         .withUnprotectedHeaders(new Map())

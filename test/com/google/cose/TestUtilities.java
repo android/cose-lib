@@ -2,6 +2,7 @@ package com.google.cose;
 
 public class TestUtilities {
   public static final String CONTENT = "This is the content.";
+  public static final String SHARED_KEY_ID = "our-secret";
   private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
   public static byte[] hexStringToByteArray(String s) {

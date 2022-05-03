@@ -2,9 +2,10 @@ package com.google.cose;
 
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
-import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.Headers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,17 +27,19 @@ public class Sign1MessageTest {
 
     Map headers = message.getUnprotectedHeaders();
     Assert.assertEquals(2, headers.getKeys().size());
-    Assert.assertEquals(new NegativeInteger(-7),
-        headers.get(new UnsignedInteger(1)));
+    Assert.assertEquals(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256.getAlgorithmId(),
+        headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
     Assert.assertEquals(new ByteString(TestUtilities.hexStringToByteArray("3131")),
-        headers.get(new UnsignedInteger(4)));
+        headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
   }
 
   @Test
   public void testSerialize() {
     Map map = new Map();
-    map.put(new UnsignedInteger(1), new NegativeInteger(-7));
-    map.put(new UnsignedInteger(4), new ByteString(TestUtilities.hexStringToByteArray("3131")));
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256.getAlgorithmId());
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
+        new ByteString(TestUtilities.hexStringToByteArray("3131")));
 
     Sign1Message message = Sign1Message.builder()
         .withProtectedHeaderBytes(CborUtils.encode(new Map()))

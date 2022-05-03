@@ -2,9 +2,10 @@ package com.google.cose;
 
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
-import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.Headers;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
@@ -29,22 +30,24 @@ public class MacMessageTest {
 
     Recipient r = message.recipients.get(0);
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getProtectedHeaderBytes()));
-    Assert.assertEquals(new NegativeInteger(-6),
-        r.getUnprotectedHeaders().get(new UnsignedInteger(1)));
-    Assert.assertEquals(new ByteString(TestUtilities.hexStringToByteArray("6F75722D736563726574")),
-        r.getUnprotectedHeaders().get(new UnsignedInteger(4)));
+    Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getAlgorithmId(),
+        r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
+    Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
+        r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getCiphertext()));
   }
 
   @Test
   public void testSerialize() {
     Map protectedHeaders = new Map();
-    protectedHeaders.put(new UnsignedInteger(1), new UnsignedInteger(5));
+    protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());
 
     Map unprotectedHeaders = new Map();
-    unprotectedHeaders.put(new UnsignedInteger(1), new NegativeInteger(-6));
-    unprotectedHeaders.put(new UnsignedInteger(4),
-        new ByteString(TestUtilities.hexStringToByteArray("6F75722D736563726574")));
+    unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.DIRECT_CEK_USAGE.getAlgorithmId());
+    unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
+        new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
 
     Recipient r = Recipient.builder()
         .withCiphertext(new byte[0])

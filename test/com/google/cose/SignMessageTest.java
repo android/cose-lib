@@ -4,6 +4,7 @@ import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.Headers;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,7 +28,7 @@ public class SignMessageTest {
     Assert.assertEquals("A10126", TestUtilities.bytesToHexString(s.getProtectedHeaderBytes()));
     Assert.assertEquals(1, s.getUnprotectedHeaders().getKeys().size());
     Assert.assertEquals(new ByteString(TestUtilities.hexStringToByteArray("3131")),
-        s.getUnprotectedHeaders().get(new UnsignedInteger(4)));
+        s.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
     Assert.assertEquals("E2AEAFD40D69D19DFE6E52077C5D7FF4E408282CBEFB5D06CBF414AF2E19D982AC45AC98B"
         + "8544C908B4507DE1E90B717C3D34816FE926A2B98F53AFD2FA0F30A",
         TestUtilities.bytesToHexString(s.getSignature()));
@@ -48,7 +49,7 @@ public class SignMessageTest {
     Assert.assertEquals(1, s.getUnprotectedHeaders().getKeys().size());
     Assert.assertEquals("A10126", TestUtilities.bytesToHexString(s.getProtectedHeaderBytes()));
     Assert.assertEquals(new ByteString(TestUtilities.hexStringToByteArray("3131")),
-        s.getUnprotectedHeaders().get(new UnsignedInteger(4)));
+        s.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
     Assert.assertEquals("E2AEAFD40D69D19DFE6E52077C5D7FF4E408282CBEFB5D06CBF414AF2E19D982AC45AC98B"
             + "8544C908B4507DE1E90B717C3D34816FE926A2B98F53AFD2FA0F30A",
         TestUtilities.bytesToHexString(s.getSignature()));
@@ -57,7 +58,7 @@ public class SignMessageTest {
   @Test
   public void testSerialize() {
     Map unprotectedHeaders = new Map();
-    unprotectedHeaders.put(new UnsignedInteger(4),
+    unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
         new ByteString(TestUtilities.hexStringToByteArray("3131")));
 
     Signature s = Signature.builder()
