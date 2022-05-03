@@ -1,7 +1,9 @@
 package com.google.cose;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 
 /**
@@ -18,14 +20,22 @@ public abstract class CoseMessage {
 
   // TODO: Add counter signature support
 
-  public byte[] serialize() {
+  public abstract DataItem encode() throws CoseException;
+
+  public byte[] serialize() throws CborException, CoseException {
     return CborUtils.encode(encode());
   }
 
-  public abstract DataItem encode();
-
   public byte[] getProtectedHeaderBytes() {
     return protectedHeaderBytes;
+  }
+
+  public Map getProtectedHeaders() throws CoseException, CborException {
+    if (protectedHeaderBytes.length == 0) {
+      return new Map();
+    } else {
+      return CborUtils.asMap(CborUtils.decode(protectedHeaderBytes));
+    }
   }
 
   public Map getUnprotectedHeaders() {
