@@ -45,12 +45,29 @@ public class Mac0MessageTest {
   }
 
   @Test
-  public void testSerialize() throws CoseException, CborException {
+  public void testSerializeWithProtectedHeaderBytes() throws CoseException, CborException {
     Map map = new Map();
     map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     Mac0Message message = Mac0Message.builder()
         .withProtectedHeaderBytes(CborUtils.encode(map))
+        .withUnprotectedHeaders(new Map())
+        .withMessage(TestUtilities.CONTENT.getBytes())
+        .withTag(TestUtilities.hexStringToByteArray(
+            "A1A848D3471F9D61EE49018D244C824772F223AD4F935293F1789FC3A08D8C58"))
+        .build();
+    Assert.assertEquals("8443A10105A054546869732069732074686520636F6E74656E742E5820A1A848D3471F9D6"
+            + "1EE49018D244C824772F223AD4F935293F1789FC3A08D8C58",
+        TestUtilities.bytesToHexString(message.serialize()));
+  }
+
+  @Test
+  public void testSerializeWithProtectedHeaders() throws CoseException, CborException {
+    Map map = new Map();
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
+    Mac0Message message = Mac0Message.builder()
+        .withProtectedHeaders(map)
         .withUnprotectedHeaders(new Map())
         .withMessage(TestUtilities.CONTENT.getBytes())
         .withTag(TestUtilities.hexStringToByteArray(

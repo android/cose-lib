@@ -42,6 +42,10 @@ public class EncryptMessageTest {
         TestUtilities.bytesToHexString(message.getCiphertext()));
     Assert.assertEquals("A10101",
         TestUtilities.bytesToHexString(message.getProtectedHeaderBytes()));
+    Map protectedHeaders = message.getProtectedHeaders();
+    Assert.assertEquals(1, protectedHeaders.getKeys().size());
+    Assert.assertEquals(Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId(),
+        protectedHeaders.get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
     Assert.assertEquals(
         new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")),
         message.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV)));
@@ -51,6 +55,7 @@ public class EncryptMessageTest {
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getProtectedHeaderBytes()));
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getCiphertext()));
     Assert.assertEquals(0, r.getRecipients().size());
+    Assert.assertEquals(0, r.getProtectedHeaders().getKeys().size());
 
     Map headers = r.getUnprotectedHeaders();
     Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
@@ -60,7 +65,7 @@ public class EncryptMessageTest {
   }
 
   @Test
-  public void testSerialize() throws CborException, CoseException {
+  public void testSerializeWithProtectedHeaderBytes() throws CborException, CoseException {
     Map protectedHeaders = new Map();
     protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
@@ -91,5 +96,41 @@ public class EncryptMessageTest {
     Assert.assertEquals("8443A10101A1054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1"
             + "DD25867374B3581F2C80039826350B97AE2300E42FD818340A20125044A6F75722D73656372657440",
         TestUtilities.bytesToHexString(message.build().serialize()));
+  }
+
+  @Test
+  public void testSerializeWithProtectedHeaders() throws CborException, CoseException {
+    Map protectedHeaders = new Map();
+    protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
+    Map unprotectedMessageHeaders = new Map();
+    unprotectedMessageHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV),
+        new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")));
+
+    Map unprotectedRecipientHeaders = new Map();
+    unprotectedRecipientHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId());
+    unprotectedRecipientHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
+        new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
+    Recipient r = Recipient.builder()
+        .withProtectedHeaders(new Map())
+        .withUnprotectedHeaders(unprotectedRecipientHeaders)
+        .withCiphertext(new byte[0])
+        .build();
+
+    Assert.assertEquals("8340A20125044A6F75722D73656372657440",
+        TestUtilities.bytesToHexString(r.serialize()));
+
+    EncryptMessage message = EncryptMessage.builder()
+        .withProtectedHeaderBytes(CborUtils.encode(protectedHeaders))
+        .withUnprotectedHeaders(unprotectedMessageHeaders)
+        .withCiphertext(TestUtilities.hexStringToByteArray(
+            "60973A94BB2898009EE52ECFD9AB1DD25867374B3581F2C80039826350B97AE2300E42FD"))
+        .withRecipients(r)
+        .build();
+
+    Assert.assertEquals("8443A10101A1054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1"
+            + "DD25867374B3581F2C80039826350B97AE2300E42FD818340A20125044A6F75722D73656372657440",
+        TestUtilities.bytesToHexString(message.serialize()));
   }
 }

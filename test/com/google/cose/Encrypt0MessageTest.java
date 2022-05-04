@@ -42,13 +42,17 @@ public class Encrypt0MessageTest {
         TestUtilities.bytesToHexString(message.getCiphertext()));
     Assert.assertEquals("A10101",
         TestUtilities.bytesToHexString(message.getProtectedHeaderBytes()));
+    Map protectedHeaders = message.getProtectedHeaders();
+    Assert.assertEquals(1, protectedHeaders.getKeys().size());
+    Assert.assertEquals(Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId(),
+        protectedHeaders.get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
     Assert.assertEquals(
         message.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV)),
         new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")));
   }
 
   @Test
-  public void testSerialize() throws CoseException, CborException {
+  public void testSerializeWithProtectedHeaderBytes() throws CoseException, CborException {
     DataItem protectedHeaders = new Map();
     Map map = new Map();
     map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
@@ -62,6 +66,24 @@ public class Encrypt0MessageTest {
             "60973A94BB2898009EE52ECFD9AB1DD25867374B24BEE54AA5D797C8DC845929ACAA47EF"))
         .build();
     Assert.assertEquals("8341A0A20101054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1"
+        + "DD25867374B24BEE54AA5D797C8DC845929ACAA47EF",
+        TestUtilities.bytesToHexString(message.serialize()));
+  }
+
+  @Test
+  public void testSerializeWithProtectedHeaders() throws CoseException, CborException {
+    Map map = new Map();
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+        Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
+    map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV),
+        new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")));
+    Encrypt0Message message = Encrypt0Message.builder()
+        .withProtectedHeaders(new Map())
+        .withUnprotectedHeaders(map)
+        .withCiphertext(TestUtilities.hexStringToByteArray(
+            "60973A94BB2898009EE52ECFD9AB1DD25867374B24BEE54AA5D797C8DC845929ACAA47EF"))
+        .build();
+    Assert.assertEquals("8340A20101054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1"
         + "DD25867374B24BEE54AA5D797C8DC845929ACAA47EF",
         TestUtilities.bytesToHexString(message.serialize()));
   }

@@ -17,7 +17,7 @@
 package com.google.cose.utils;
 
 /**
- * This class contains all the header keys that we are going to be using in COSE implementation.
+ * This class contains COSE IANA IDs that we are going to be using in COSE implementation.
  */
 public class Headers {
   public static final int KEY_PARAMETER_KEY_TYPE = 1;
