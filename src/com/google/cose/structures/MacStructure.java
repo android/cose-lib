@@ -20,6 +20,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 
 /**
  * Encodes the MAC_Structure as mentioned in COSE RFC section 6.3
@@ -57,6 +58,6 @@ public class MacStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CborUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, message);
+    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, message);
   }
 }

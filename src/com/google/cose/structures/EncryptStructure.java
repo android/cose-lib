@@ -20,6 +20,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 
 /**
  * Encodes the Enc_Structure as mentioned in COSE RFC section 5.3
@@ -58,6 +59,6 @@ public class EncryptStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CborUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, null);
+    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, null);
   }
 }

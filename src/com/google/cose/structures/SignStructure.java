@@ -20,6 +20,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 
 /**
  * Encodes the Sig_Structure as mentioned in COSE RFC section 4.4
@@ -61,7 +62,7 @@ public class SignStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CborUtils.encodeStructure(context.getContext(), protectedBodyHeaders,
+    return CoseUtils.encodeStructure(context.getContext(), protectedBodyHeaders,
         protectedSignHeaders, externalAad, message);
   }
 }

@@ -16,18 +16,15 @@
 
 package com.google.cose.utils;
 
-import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborDecoder;
 import co.nstant.in.cbor.CborEncoder;
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.Array;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
-import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import java.io.ByteArrayInputStream;
@@ -106,22 +103,6 @@ public class CborUtils {
   }
 
   /**
-   * Returns DataItem from a cbor map based on Integer index.
-   * @param cborMap map that has the information.
-   * @param index integer index to be used as key in the map.
-   * @return value in the map corresponding to key
-   */
-  public static DataItem getValueFromMap(final Map cborMap, final int index) {
-    final Number key;
-    if (index >= 0) {
-      key = new UnsignedInteger(index);
-    } else {
-      key = new NegativeInteger(index);
-    }
-    return cborMap.get(key);
-  }
-
-  /**
    * Returns DataItem as integer.
    * @param dataItem UnsignedInteger or NegativeInteger
    * @return integer value of the DataItem
@@ -135,28 +116,5 @@ public class CborUtils {
     } else {
       throw new CborException(String.format("Invalid type: %s", dataItem.getMajorType()));
     }
-  }
-
-  public static DataItem encodeStructure(String context, Map protectedBodyHeaders,
-      Map protectedSignHeaders, byte[] externalAad, byte[] payload) throws CborException {
-    ArrayBuilder<CborBuilder> arrayBuilder = new CborBuilder().addArray();
-    arrayBuilder.add(context);
-    if (protectedBodyHeaders.getKeys().size() == 0) {
-      arrayBuilder.add(new byte[0]);
-    } else {
-      arrayBuilder.add(CborUtils.encode(protectedBodyHeaders));
-    }
-    if (protectedSignHeaders != null) {
-      if (protectedSignHeaders.getKeys().size() == 0) {
-        arrayBuilder.add(new byte[0]);
-      } else {
-        arrayBuilder.add(CborUtils.encode(protectedSignHeaders));
-      }
-    }
-    arrayBuilder.add(externalAad);
-    if (payload != null) {
-      arrayBuilder.add(payload);
-    }
-    return arrayBuilder.end().build().get(0);
   }
 }
