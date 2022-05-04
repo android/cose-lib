@@ -23,6 +23,8 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,7 +48,7 @@ public class SignMessage extends CoseMessage {
     private byte[] message;
     private List<Signature> signatures;
 
-    public SignMessage build() {
+    public SignMessage build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (message != null)
           && (signatures != null)) {
         return new SignMessage(protectedHeaderBytes, unprotectedHeaders, message, signatures);
@@ -60,7 +62,7 @@ public class SignMessage extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -82,6 +84,10 @@ public class SignMessage extends CoseMessage {
       return this;
     }
 
+    public Builder withSignatures(Signature...signatures) {
+      return this.withSignatures(Arrays.asList(signatures));
+    }
+
     public Builder withSignatures(List<Signature> signatures) {
       this.signatures = signatures;
       return this;
@@ -89,7 +95,7 @@ public class SignMessage extends CoseMessage {
   }
 
   @Override
-  public DataItem encode() {
+  public DataItem encode() throws CoseException {
     ArrayBuilder<CborBuilder> messageBuilder = new CborBuilder().addArray();
     messageBuilder.add(getProtectedHeaderBytes()).add(getUnprotectedHeaders()).add(message);
     ArrayBuilder<ArrayBuilder<CborBuilder>> signArrayBuilder = messageBuilder.addArray();
@@ -106,28 +112,29 @@ public class SignMessage extends CoseMessage {
     return messageBuilder.end().build().get(0);
   }
 
-  public static SignMessage deserialize(byte[] messageBytes) {
+  public static SignMessage deserialize(byte[] messageBytes) throws CoseException, CborException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static SignMessage decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
-      if (messageArray.size() != 4) {
-        throw new CoseException("Error while decoding EncryptMessage. Expected 4 items,"
-            + "received " + messageArray.size());
-      }
-      List<DataItem> signatures = CborUtils.asArray(messageArray.get(3)).getDataItems();
-
-      return SignMessage.builder()
-          .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
-          .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
-          .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-          .withSignatures(signatures.stream().map(Signature::decode).collect(Collectors.toList()))
-          .build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding EncryptMessage.", ex);
+  public static SignMessage decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
+    if (messageArray.size() != 4) {
+      throw new CoseException("Error while decoding EncryptMessage. Expected 4 items,"
+          + "received " + messageArray.size());
     }
+
+    List<Signature> signatures = new ArrayList<>();
+    for (DataItem signature : CborUtils.asArray(messageArray.get(3)).getDataItems()) {
+      Signature decode = Signature.decode(signature);
+      signatures.add(decode);
+    }
+
+    return SignMessage.builder()
+        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
+        .withSignatures(signatures)
+        .build();
   }
 
   public byte[] getMessage() {

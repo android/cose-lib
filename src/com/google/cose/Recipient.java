@@ -25,6 +25,7 @@ import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -45,9 +46,13 @@ public class Recipient extends CoseMessage {
     private byte[] protectedHeaderBytes;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
-    private List<Recipient> recipients;
+    private final List<Recipient> recipients;
 
-    public Recipient build() {
+    Builder() {
+      this.recipients = new ArrayList<>();
+    }
+
+    public Recipient build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (ciphertext != null)) {
         // recipients is an optional field and hence we are not checking that.
         return new Recipient(protectedHeaderBytes, unprotectedHeaders, ciphertext, recipients);
@@ -61,7 +66,7 @@ public class Recipient extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -83,8 +88,12 @@ public class Recipient extends CoseMessage {
       return this;
     }
 
+    public Builder withRecipients(Recipient...recipients) {
+      return this.withRecipients(Arrays.asList(recipients));
+    }
+
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients = recipients;
+      this.recipients.addAll(recipients);
       return this;
     }
   }
@@ -103,43 +112,39 @@ public class Recipient extends CoseMessage {
     return arrayBuilder.end().build().get(0);
   }
 
-  public static Recipient deserialize(byte[] rawBytes) {
+  public static Recipient deserialize(byte[] rawBytes) throws CoseException, CborException {
     return decode(CborUtils.decode(rawBytes));
   }
 
-  public static Recipient decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageDataItems = CborUtils.asArray(cborMessage).getDataItems();
-      DataItem protectedHeader = messageDataItems.get(0);
-      Map unprotectedHeaders = CborUtils.asMap(messageDataItems.get(1));
-      ByteString ciphertext = CborUtils.asByteString(messageDataItems.get(2));
-      List<Recipient> recipients = new ArrayList<>();
-      if (messageDataItems.size() == 4) {
-        List<DataItem> messageRecipients = CborUtils.asArray(messageDataItems.get(3))
-            .getDataItems();
-        for (DataItem messageRecipient : messageRecipients) {
-          Recipient recipient = Recipient.decode(messageRecipient);
-          recipients.add(recipient);
-        }
-      } else if (messageDataItems.size() != 3) {
-        throw new CoseException("Error while decoding recipient array. Expected 3 ");
+  public static Recipient decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageDataItems = CborUtils.asArray(cborMessage).getDataItems();
+    DataItem protectedHeader = messageDataItems.get(0);
+    Map unprotectedHeaders = CborUtils.asMap(messageDataItems.get(1));
+    ByteString ciphertext = CborUtils.asByteString(messageDataItems.get(2));
+    List<Recipient> recipients = new ArrayList<>();
+    if (messageDataItems.size() == 4) {
+      List<DataItem> messageRecipients = CborUtils.asArray(messageDataItems.get(3))
+          .getDataItems();
+      for (DataItem messageRecipient : messageRecipients) {
+        Recipient recipient = Recipient.decode(messageRecipient);
+        recipients.add(recipient);
       }
-      return Recipient.builder()
-          .withProtectedHeaderBytes(CborUtils.asByteString(protectedHeader).getBytes())
-          .withUnprotectedHeaders(unprotectedHeaders)
-          .withCiphertext(ciphertext.getBytes())
-          .withRecipients(recipients)
-          .build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding RecipientInfo", ex);
+    } else if (messageDataItems.size() != 3) {
+      throw new CoseException("Error while decoding recipient array. Expected 3 ");
     }
+    return Recipient.builder()
+        .withProtectedHeaderBytes(CborUtils.asByteString(protectedHeader).getBytes())
+        .withUnprotectedHeaders(unprotectedHeaders)
+        .withCiphertext(ciphertext.getBytes())
+        .withRecipients(recipients)
+        .build();
   }
 
   public byte[] getCiphertext() {
     return ciphertext;
   }
 
-  private List<Recipient> getRecipients() {
+  public List<Recipient> getRecipients() {
     return recipients;
   }
 

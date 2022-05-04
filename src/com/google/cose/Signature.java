@@ -41,7 +41,7 @@ public class Signature extends CoseMessage {
     private Map unprotectedHeaders;
     private byte[] signature;
 
-    public Signature build() {
+    public Signature build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (signature != null)) {
         return new Signature(protectedHeaderBytes, unprotectedHeaders, signature);
       } else {
@@ -54,7 +54,7 @@ public class Signature extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -84,25 +84,21 @@ public class Signature extends CoseMessage {
     return signArrayBuilder.end().build().get(0);
   }
 
-  public static Signature deserialize(byte[] signature) {
+  public static Signature deserialize(byte[] signature) throws CoseException, CborException {
     return decode(CborUtils.decode(signature));
   }
 
-  public static Signature decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
-      if (messageArray.size() != 3) {
-        throw new CoseException("Error while decoding Signature. Expected 3 items,"
-            + "received " + messageArray.size());
-      }
-      return Signature.builder()
-          .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
-          .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-          .withSignature(CborUtils.asByteString(messageArray.get(2)).getBytes())
-          .build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding Signature", ex);
+  public static Signature decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
+    if (messageArray.size() != 3) {
+      throw new CoseException("Error while decoding Signature. Expected 3 items,"
+          + "received " + messageArray.size());
     }
+    return Signature.builder()
+        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
+        .withSignature(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .build();
   }
 
   public byte[] getSignature() {

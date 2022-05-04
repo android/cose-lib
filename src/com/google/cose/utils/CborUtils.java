@@ -44,18 +44,14 @@ public class CborUtils {
    * @param data byte array in cbor format.
    * @return DataItem cbor object
    */
-  public static DataItem decode(final byte[] data) {
+  public static DataItem decode(final byte[] data) throws CoseException, CborException {
     final ByteArrayInputStream bais = new ByteArrayInputStream(data);
-    try {
-      final List<DataItem> dataItems = new CborDecoder(bais).decode();
-      if (dataItems.size() != 1) {
-        throw new CoseException("Byte stream cannot be decoded properly. Expected 1 item, found "
-            + dataItems.size());
-      }
-      return dataItems.get(0);
-    } catch (final CborException ex) {
-      throw new CoseException("Error decoding data", ex);
+    final List<DataItem> dataItems = new CborDecoder(bais).decode();
+    if (dataItems.size() != 1) {
+      throw new CoseException("Byte stream cannot be decoded properly. Expected 1 item, found "
+          + dataItems.size());
     }
+    return dataItems.get(0);
   }
 
   /**
@@ -63,14 +59,10 @@ public class CborUtils {
    * @param dataItem DataItem cbor object
    * @return encoded bytes
    */
-  public static byte[] encode(final DataItem dataItem) {
+  public static byte[] encode(final DataItem dataItem) throws CborException {
     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
     CborEncoder encoder = new CborEncoder(baos);
-    try {
-      encoder.encode(dataItem);
-    } catch (final CborException ex) {
-      throw new CoseException("Error encoding data", ex);
-    }
+    encoder.encode(dataItem);
     return baos.toByteArray();
   }
 
@@ -146,7 +138,7 @@ public class CborUtils {
   }
 
   public static DataItem encodeStructure(String context, Map protectedBodyHeaders,
-      Map protectedSignHeaders, byte[] externalAad, byte[] payload) {
+      Map protectedSignHeaders, byte[] externalAad, byte[] payload) throws CborException {
     ArrayBuilder<CborBuilder> arrayBuilder = new CborBuilder().addArray();
     arrayBuilder.add(context);
     if (protectedBodyHeaders.getKeys().size() == 0) {

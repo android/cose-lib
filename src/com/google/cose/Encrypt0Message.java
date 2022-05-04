@@ -40,7 +40,7 @@ public class Encrypt0Message extends CoseMessage {
     private byte[] protectedHeaderBytes;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
-    public Encrypt0Message build() {
+    public Encrypt0Message build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (ciphertext != null)) {
         return new Encrypt0Message(protectedHeaderBytes, unprotectedHeaders, ciphertext);
       } else {
@@ -53,7 +53,7 @@ public class Encrypt0Message extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -86,25 +86,21 @@ public class Encrypt0Message extends CoseMessage {
     return encryptArrayBuilder.end().build().get(0);
   }
 
-  public static Encrypt0Message deserialize(byte[] messageBytes) {
+  public static Encrypt0Message deserialize(byte[] messageBytes) throws CoseException, CborException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static Encrypt0Message decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
-      if (messageArray.size() != 3) {
-        throw new CoseException("Error while decoding Encrypt0Message. Expected 3 items,"
-            + "received " + messageArray.size());
-      }
-      Encrypt0Message.Builder builder = new Encrypt0Message.Builder();
-      builder.withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes());
-      builder.withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)));
-      builder.withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes());
-      return builder.build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding Encrypt0Message", ex);
+  public static Encrypt0Message decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
+    if (messageArray.size() != 3) {
+      throw new CoseException("Error while decoding Encrypt0Message. Expected 3 items,"
+          + "received " + messageArray.size());
     }
+    Encrypt0Message.Builder builder = new Encrypt0Message.Builder();
+    builder.withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes());
+    builder.withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)));
+    builder.withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes());
+    return builder.build();
   }
 
   public byte[] getCiphertext() {

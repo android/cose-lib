@@ -16,9 +16,11 @@
 
 package com.google.cose;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
@@ -31,7 +33,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class EncryptMessageTest {
   @Test
-  public void testDeserialize() {
+  public void testDeserialize() throws CoseException, CborException {
     EncryptMessage message = EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8443A10101A1054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1DD25867374B3581F2C"
           + "80039826350B97AE2300E42FD818340A20125044A6F75722D73656372657440"
@@ -48,19 +50,20 @@ public class EncryptMessageTest {
     Recipient r = message.getRecipients().get(0);
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getProtectedHeaderBytes()));
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getCiphertext()));
+    Assert.assertEquals(0, r.getRecipients().size());
 
     Map headers = r.getUnprotectedHeaders();
     Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
         headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
-    Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getAlgorithmId(),
+    Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId(),
         headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
   }
 
   @Test
-  public void testSerialize() {
+  public void testSerialize() throws CborException, CoseException {
     Map protectedHeaders = new Map();
     protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.ENCRYPTION_AES_128_GCM.getAlgorithmId());
+        Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
     Map unprotectedHeaders = new Map();
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV),
         new ByteString(TestUtilities.hexStringToByteArray("02D1F7E6F26C43D4868D87CE")));
@@ -72,7 +75,7 @@ public class EncryptMessageTest {
 
     unprotectedHeaders = new Map();
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.DIRECT_CEK_USAGE.getAlgorithmId());
+        Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId());
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
         new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
     Recipient r = Recipient.builder()

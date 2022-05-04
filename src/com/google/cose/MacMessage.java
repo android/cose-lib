@@ -23,6 +23,8 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,11 +49,15 @@ public class MacMessage extends CoseMessage {
     private Map unprotectedHeaders;
     private byte[] message;
     private byte[] tag;
-    private List<Recipient> recipients;
+    private final List<Recipient> recipients;
 
-    public MacMessage build() {
+    Builder() {
+      recipients = new ArrayList<>();
+    }
+
+    public MacMessage build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (message != null)
-          && (tag != null) && (recipients != null)) {
+          && (tag != null) && (recipients.size() != 0)) {
         return new MacMessage(protectedHeaderBytes, unprotectedHeaders, message, tag, recipients);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -63,7 +69,7 @@ public class MacMessage extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -91,13 +97,18 @@ public class MacMessage extends CoseMessage {
     }
 
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients = recipients;
+      this.recipients.addAll(recipients);
       return this;
     }
+
+    public Builder withRecipients(Recipient...recipients) {
+      return this.withRecipients(Arrays.asList(recipients));
+    }
+
   }
 
   @Override
-  public DataItem encode() {
+  public DataItem encode() throws CoseException {
     ArrayBuilder<CborBuilder> macArrayBuilder = new CborBuilder().addArray();
     macArrayBuilder.add(getProtectedHeaderBytes()).add(getUnprotectedHeaders()).add(message)
         .add(tag);
@@ -115,29 +126,29 @@ public class MacMessage extends CoseMessage {
     return macArrayBuilder.end().build().get(0);
   }
 
-  public static MacMessage deserialize(byte[] messageBytes) {
+  public static MacMessage deserialize(byte[] messageBytes) throws CoseException, CborException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static MacMessage decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
-      if (messageArray.size() != 5) {
-        throw new CoseException("Error while decoding MacMessage. Expected 5 items,"
-            + "received " + messageArray.size());
-      }
-      List<DataItem> recipients = CborUtils.asArray(messageArray.get(4)).getDataItems();
-
-      return MacMessage.builder()
-          .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
-          .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-          .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
-          .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())
-          .withRecipients(recipients.stream().map(Recipient::decode).collect(Collectors.toList()))
-          .build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding Mac0Message", ex);
+  public static MacMessage decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
+    if (messageArray.size() != 5) {
+      throw new CoseException("Error while decoding MacMessage. Expected 5 items,"
+          + "received " + messageArray.size());
     }
+
+    List<Recipient> recipients = new ArrayList<>();
+    for (DataItem recipient : CborUtils.asArray(messageArray.get(4)).getDataItems()) {
+      Recipient decode = Recipient.decode(recipient);
+      recipients.add(decode);
+    }
+    return MacMessage.builder()
+        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
+        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())
+        .withRecipients(recipients)
+        .build();
   }
 
   public byte[] getMessage() {

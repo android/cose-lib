@@ -16,6 +16,7 @@
 
 package com.google.cose.structure;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.TestUtilities;
@@ -31,11 +32,11 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class MacStructureTest {
   @Test
-  public void testMac0Structure() {
+  public void testMac0Structure() throws CborException {
     MacContext context = MacContext.MAC0;
     Map headers = new Map();
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());
+        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
     MacStructure m = new MacStructure(context, headers, externalAad, payload);
@@ -46,11 +47,11 @@ public class MacStructureTest {
   }
 
   @Test
-  public void testMacStructure() {
+  public void testMacStructure() throws CborException {
     MacContext context = MacContext.MAC;
     Map headers = new Map();
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());
+        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
     MacStructure m = new MacStructure(context, headers, externalAad, payload);

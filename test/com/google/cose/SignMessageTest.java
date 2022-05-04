@@ -16,9 +16,11 @@
 
 package com.google.cose;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
 import java.util.Collections;
@@ -30,7 +32,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SignMessageTest {
   @Test
-  public void testDeserialize() {
+  public void testDeserialize() throws CoseException, CborException {
     SignMessage message = SignMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8441A0A054546869732069732074686520636F6E74656E742E818343A10126A1044231315840E2AEAFD40D69D19"
           + "DFE6E52077C5D7FF4E408282CBEFB5D06CBF414AF2E19D982AC45AC98B8544C908B4507DE1E90B717C3D3"
@@ -51,7 +53,7 @@ public class SignMessageTest {
   }
 
   @Test
-  public void testDeserialize2() {
+  public void testDeserializeWithEmptyProtectedHeaders() throws CoseException, CborException {
     SignMessage message = SignMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8440A054546869732069732074686520636F6E74656E742E818343A10126A1044231315840E2AEAFD40D69D19"
           + "DFE6E52077C5D7FF4E408282CBEFB5D06CBF414AF2E19D982AC45AC98B8544C908B4507DE1E90B717C3D3"
@@ -72,7 +74,7 @@ public class SignMessageTest {
   }
 
   @Test
-  public void testSerialize() {
+  public void testSerialize() throws CoseException, CborException {
     Map unprotectedHeaders = new Map();
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
         new ByteString(TestUtilities.hexStringToByteArray("3131")));
@@ -89,7 +91,7 @@ public class SignMessageTest {
         .withProtectedHeaderBytes(CborUtils.encode(new Map()))
         .withUnprotectedHeaders(new Map())
         .withMessage(TestUtilities.CONTENT.getBytes())
-        .withSignatures(Collections.singletonList(s))
+        .withSignatures(s)
         .build();
 
     Assert.assertEquals("8441A0A054546869732069732074686520636F6E74656E742E818343A10126A1044231315"

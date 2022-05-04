@@ -23,8 +23,9 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implements COSE_Encrpyt message structure.
@@ -44,11 +45,15 @@ public class EncryptMessage extends CoseMessage {
     private byte[] protectedHeaderBytes;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
-    private List<Recipient> recipients;
+    private final List<Recipient> recipients;
 
-    public EncryptMessage build() {
+    Builder() {
+      recipients = new ArrayList<>();
+    }
+
+    public EncryptMessage build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (ciphertext != null)
-          && (recipients != null)) {
+          && (recipients.size() != 0)) {
         return new EncryptMessage(protectedHeaderBytes, unprotectedHeaders, ciphertext, recipients);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -60,7 +65,7 @@ public class EncryptMessage extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -83,13 +88,17 @@ public class EncryptMessage extends CoseMessage {
     }
 
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients = recipients;
+      this.recipients.addAll(recipients);
       return this;
+    }
+
+    public Builder withRecipients(Recipient...recipients) {
+      return this.withRecipients(Arrays.asList(recipients));
     }
   }
 
   @Override
-  public DataItem encode() {
+  public DataItem encode() throws CoseException {
     ArrayBuilder<CborBuilder> encryptArrayBuilder = new CborBuilder().addArray();
     encryptArrayBuilder.add(getProtectedHeaderBytes()).add(getUnprotectedHeaders()).add(ciphertext);
     ArrayBuilder<ArrayBuilder<CborBuilder>> recipientArrayBuilder = encryptArrayBuilder.addArray();
@@ -106,27 +115,29 @@ public class EncryptMessage extends CoseMessage {
     return encryptArrayBuilder.end().build().get(0);
   }
 
-  public static EncryptMessage deserialize(byte[] messageBytes) {
+  public static EncryptMessage deserialize(byte[] messageBytes) throws CoseException, CborException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static EncryptMessage decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
-      if (messageArray.size() != 4) {
-        throw new CoseException("Error while decoding EncryptMessage. Expected 4 items,"
-            + "received " + messageArray.size());
-      }
-      List<DataItem> recipients = CborUtils.asArray(messageArray.get(3)).getDataItems();
-      return EncryptMessage.builder()
-          .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
-          .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-          .withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes())
-          .withRecipients(recipients.stream().map(Recipient::decode).collect(Collectors.toList()))
-          .build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding EncryptMessage.", ex);
+  public static EncryptMessage decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
+    if (messageArray.size() != 4) {
+      throw new CoseException("Error while decoding EncryptMessage. Expected 4 items,"
+          + "received " + messageArray.size());
     }
+
+    List<Recipient> recipients = new ArrayList<>();
+    for (DataItem recipient : CborUtils.asArray(messageArray.get(3)).getDataItems()) {
+      Recipient decode = Recipient.decode(recipient);
+      recipients.add(decode);
+    }
+
+    return EncryptMessage.builder()
+        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
+        .withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withRecipients(recipients)
+        .build();
   }
 
   public byte[] getCiphertext() {

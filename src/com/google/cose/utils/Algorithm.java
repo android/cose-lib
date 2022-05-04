@@ -40,22 +40,22 @@ public enum Algorithm {
 
   DIRECT_CEK_USAGE(-6, null);
 
-  private final int algorithmId;
-  private final String instance;
+  private final int coseAlgorithmId;
+  private final String javaAlgorithmId;
 
-  Algorithm(int algorithmId, String instance) {
-    this.algorithmId = algorithmId;
-    this.instance = instance;
+  Algorithm(int coseAlgorithmId, String javaAlgorithmId) {
+    this.coseAlgorithmId = coseAlgorithmId;
+    this.javaAlgorithmId = javaAlgorithmId;
   }
 
-  public String getInstance() {
-    return instance;
+  public String getJavaAlgorithmId() {
+    return javaAlgorithmId;
   }
 
-  public Number getAlgorithmId() {
-    if (algorithmId < 0) {
-      return new NegativeInteger(algorithmId);
+  public Number getCoseAlgorithmId() {
+    if (coseAlgorithmId < 0) {
+      return new NegativeInteger(coseAlgorithmId);
     }
-    return new UnsignedInteger(algorithmId);
+    return new UnsignedInteger(coseAlgorithmId);
   }
 }

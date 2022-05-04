@@ -43,7 +43,7 @@ public class Sign1Message extends CoseMessage {
     private Map unprotectedHeaders;
     private byte[] message;
     private byte[] signature;
-    public Sign1Message build() {
+    public Sign1Message build() throws CoseException {
       if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (message != null)
           && (signature != null)) {
         return new Sign1Message(protectedHeaderBytes, unprotectedHeaders, message, signature);
@@ -57,7 +57,7 @@ public class Sign1Message extends CoseMessage {
       return this;
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) {
+    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
       if (protectedHeaderBytes != null) {
         throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
       }
@@ -93,26 +93,22 @@ public class Sign1Message extends CoseMessage {
     return signArrayBuilder.end().build().get(0);
   }
 
-  public static Sign1Message deserialize(byte[] messageBytes) {
+  public static Sign1Message deserialize(byte[] messageBytes) throws CoseException, CborException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static Sign1Message decode(DataItem cborMessage) {
-    try {
-      List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
-      if (messageArray.size() != 4) {
-        throw new CoseException("Error while decoding Sign1Message. Expected 4 items,"
-            + "received " + messageArray.size());
-      }
-      return Sign1Message.builder()
-          .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
-          .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-          .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
-          .withSignature(CborUtils.asByteString(messageArray.get(3)).getBytes())
-          .build();
-    } catch (CborException ex) {
-      throw new CoseException("Error while decoding Sign1Message", ex);
+  public static Sign1Message decode(DataItem cborMessage) throws CoseException, CborException {
+    List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
+    if (messageArray.size() != 4) {
+      throw new CoseException("Error while decoding Sign1Message. Expected 4 items,"
+          + "received " + messageArray.size());
     }
+    return Sign1Message.builder()
+        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
+        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withSignature(CborUtils.asByteString(messageArray.get(3)).getBytes())
+        .build();
   }
 
   public byte[] getMessage() {

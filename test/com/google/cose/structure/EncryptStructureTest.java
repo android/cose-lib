@@ -16,6 +16,7 @@
 
 package com.google.cose.structure;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.TestUtilities;
@@ -31,7 +32,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class EncryptStructureTest {
   @Test
-  public void testEncrypt0Structure() {
+  public void testEncrypt0Structure() throws CborException {
     EncryptionContext context = EncryptionContext.ENCRYPT0;
     Map headers = new Map();
     byte[] externalAad = new byte[0];
@@ -42,11 +43,11 @@ public class EncryptStructureTest {
   }
 
   @Test
-  public void testEncryptStructure() {
+  public void testEncryptStructure() throws CborException {
     EncryptionContext context = EncryptionContext.ENCRYPT;
     Map headers = new Map();
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.ENCRYPTION_AES_128_GCM.getAlgorithmId());
+        Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
     EncryptStructure e = new EncryptStructure(context, headers, externalAad);
     Assert.assertEquals("8367456E637279707443A1010140",

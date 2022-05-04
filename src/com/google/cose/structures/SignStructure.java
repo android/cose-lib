@@ -16,6 +16,7 @@
 
 package com.google.cose.structures;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.utils.CborUtils;
@@ -55,11 +56,11 @@ public class SignStructure {
     this.message = message;
   }
 
-  public byte[] serialize() {
+  public byte[] serialize() throws CborException {
     return CborUtils.encode(encode());
   }
 
-  public DataItem encode() {
+  public DataItem encode() throws CborException {
     return CborUtils.encodeStructure(context.getContext(), protectedBodyHeaders,
         protectedSignHeaders, externalAad, message);
   }

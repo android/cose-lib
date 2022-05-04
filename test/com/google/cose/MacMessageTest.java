@@ -16,9 +16,11 @@
 
 package com.google.cose;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
@@ -31,7 +33,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class MacMessageTest {
   @Test
-  public void testDeserialize() {
+  public void testDeserialize() throws CoseException, CborException {
     MacMessage message = MacMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8543A10105A054546869732069732074686520636F6E74656E742E58202BDCC89F058216B8A208DDC6D8B54AA91"
           + "F48BD63484986565105C9AD5A6682F6818340A20125044A6F75722D73656372657440"
@@ -46,7 +48,7 @@ public class MacMessageTest {
 
     Recipient r = message.recipients.get(0);
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getProtectedHeaderBytes()));
-    Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getAlgorithmId(),
+    Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId(),
         r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
     Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
         r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
@@ -54,14 +56,14 @@ public class MacMessageTest {
   }
 
   @Test
-  public void testSerialize() {
+  public void testSerialize() throws CoseException, CborException {
     Map protectedHeaders = new Map();
     protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());
+        Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
 
     Map unprotectedHeaders = new Map();
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
-        Algorithm.DIRECT_CEK_USAGE.getAlgorithmId());
+        Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId());
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
         new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
 

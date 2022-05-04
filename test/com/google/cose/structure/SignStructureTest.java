@@ -16,6 +16,7 @@
 
 package com.google.cose.structure;
 
+import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
@@ -30,7 +31,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SignStructureTest {
   @Test
-  public void testSignStructure() {
+  public void testSignStructure() throws CborException {
     SignatureContext context = SignatureContext.SIGNATURE;
     Map protectedSignHeaders = new Map();
     protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
@@ -45,7 +46,7 @@ public class SignStructureTest {
   }
 
   @Test
-  public void testSign1Structure() {
+  public void testSign1Structure() throws CborException {
     SignatureContext context = SignatureContext.SIGNATURE1;
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
