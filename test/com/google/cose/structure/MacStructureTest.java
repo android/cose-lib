@@ -20,6 +20,7 @@ import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.TestUtilities;
 import com.google.cose.structures.MacStructure;
+import com.google.cose.structures.MacStructure.MacContext;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.Headers;
 import org.junit.Assert;
@@ -31,7 +32,7 @@ import org.junit.runners.JUnit4;
 public class MacStructureTest {
   @Test
   public void testMac0Structure() {
-    String context = "MAC0";
+    MacContext context = MacContext.MAC0;
     Map headers = new Map();
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());
@@ -46,7 +47,7 @@ public class MacStructureTest {
 
   @Test
   public void testMacStructure() {
-    String context = "MAC";
+    MacContext context = MacContext.MAC;
     Map headers = new Map();
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getAlgorithmId());

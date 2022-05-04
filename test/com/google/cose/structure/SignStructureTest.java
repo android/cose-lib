@@ -21,6 +21,7 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.TestUtilities;
 import com.google.cose.structures.SignStructure;
+import com.google.cose.structures.SignStructure.SignatureContext;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,7 +31,7 @@ import org.junit.runners.JUnit4;
 public class SignStructureTest {
   @Test
   public void testSignStructure() {
-    String context = "Signature";
+    SignatureContext context = SignatureContext.SIGNATURE;
     Map protectedSignHeaders = new Map();
     protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
     byte[] externalAad = new byte[0];
@@ -45,7 +46,7 @@ public class SignStructureTest {
 
   @Test
   public void testSign1Structure() {
-    String context = "Signature1";
+    SignatureContext context = SignatureContext.SIGNATURE1;
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
     SignStructure s = new SignStructure(context, new Map(), null, externalAad, payload);

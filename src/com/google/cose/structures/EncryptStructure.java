@@ -16,9 +16,6 @@
 
 package com.google.cose.structures;
 
-import co.nstant.in.cbor.CborBuilder;
-import co.nstant.in.cbor.builder.ArrayBuilder;
-import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.utils.CborUtils;
@@ -27,11 +24,29 @@ import com.google.cose.utils.CborUtils;
  * Encodes the Enc_Structure as mentioned in COSE RFC section 5.3
  */
 public class EncryptStructure {
-  private final String context;
+  public enum EncryptionContext {
+    ENCRYPT0("Encrypt0"),
+    ENCRYPT("Encrypt"),
+    ENCRYPT_RECIPIENT("Enc_Recipient"),
+    MAC_RECIPIENT("Mac_Recipient"),
+    RECIPIENT_RECIPIENT("Rec_Recipient");
+
+    private final String context;
+
+    EncryptionContext(String context) {
+      this.context = context;
+    }
+
+    String getContext() {
+      return this.context;
+    }
+  }
+
+  private final EncryptionContext context;
   private final Map protectedHeaders;
   private final byte[] externalAad;
 
-  public EncryptStructure(String context, Map headers, byte[] externalAad) {
+  public EncryptStructure(EncryptionContext context, Map headers, byte[] externalAad) {
     this.context = context;
     this.protectedHeaders = headers;
     this.externalAad = externalAad;
@@ -42,6 +57,6 @@ public class EncryptStructure {
   }
 
   public DataItem encode() {
-    return CborUtils.encodeStructure(context, protectedHeaders, null, externalAad, null);
+    return CborUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, null);
   }
 }

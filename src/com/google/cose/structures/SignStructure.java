@@ -24,14 +24,30 @@ import com.google.cose.utils.CborUtils;
  * Encodes the Sig_Structure as mentioned in COSE RFC section 4.4
  */
 public class SignStructure {
-  private final String context;
+  public enum SignatureContext {
+    SIGNATURE1("Signature1"),
+    SIGNATURE("Signature"),
+    COUNTER_SIGNATURE("CounterSignature");
+
+    private final String context;
+
+    SignatureContext(String context) {
+      this.context = context;
+    }
+
+    String getContext() {
+      return this.context;
+    }
+  }
+
+  private final SignatureContext context;
   private final Map protectedBodyHeaders;
   private final Map protectedSignHeaders;
   private final byte[] externalAad;
   private final byte[] message;
 
-  public SignStructure(String context, Map bodyHeaders, Map signHeaders, byte[] externalAad,
-      byte[] message) {
+  public SignStructure(SignatureContext context, Map bodyHeaders, Map signHeaders,
+      byte[] externalAad, byte[] message) {
     this.context = context;
     this.protectedBodyHeaders = bodyHeaders;
     this.protectedSignHeaders = signHeaders;
@@ -44,7 +60,7 @@ public class SignStructure {
   }
 
   public DataItem encode() {
-    return CborUtils.encodeStructure(context, protectedBodyHeaders, protectedSignHeaders,
-        externalAad, message);
+    return CborUtils.encodeStructure(context.getContext(), protectedBodyHeaders,
+        protectedSignHeaders, externalAad, message);
   }
 }
