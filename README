@@ -6,4 +6,4 @@ COSE has reached RFC status and is now available at [RFC 8152](https://tools.iet
 This is not an officially supported Google product.
 
 ## Dependencies
-https://github.com/peteroupc/CBOR-Java
+https://github.com/c-rack/cbor-java
