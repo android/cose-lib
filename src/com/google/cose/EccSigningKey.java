@@ -29,34 +29,29 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 
 /** Implements COSE_Key spec for signing purposes. */
-public final class SigningKey extends Key {
+public final class EccSigningKey extends Key {
   KeyPair keyPair;
 
-  SigningKey(KeyPair keyPair) {
+  EccSigningKey(KeyPair keyPair) {
     this.keyPair = keyPair;
     this.cborKey = null;
   }
 
-  SigningKey(DataItem cborKey, KeyPair keyPair) throws CborException {
+  EccSigningKey(DataItem cborKey) throws CoseException, CborException {
     super(cborKey);
-    this.keyPair = keyPair;
-  }
 
-  SigningKey(DataItem cborKey) throws CoseException, CborException {
-    super(cborKey);
+    keyPair = generateKeyPair();
     if ((operations == null)
         || (operations.contains(Headers.KEY_OPERATIONS_VERIFY)
         && operations.contains(Headers.KEY_OPERATIONS_SIGN))) {
       return;
     }
-
-    keyPair = generateKeyPair();
+    throw new CoseException("Signing key requires sign and verify operations.");
   }
 
   private KeyPair generateKeyPair() throws CoseException, CborException {
-    if ((keyType != Headers.KEY_TYPE_ECC) && (keyType != Headers.KEY_TYPE_OKP)) {
-      throw new CoseException(String.format("Illegal key type found for signing. Expected 2 (ECC)"
-              + " or 1 (OKP), found %d.", keyType));
+    if (keyType != Headers.KEY_TYPE_ECC) {
+      throw new CoseException(String.format("Expecting ECC key (type 2), found type %d.", keyType));
     }
 
     final KeyPair keyPair;
@@ -103,12 +98,12 @@ public final class SigningKey extends Key {
     return keyPair;
   }
 
-  public static SigningKey parse(byte[] keyBytes) throws CborException, CoseException {
+  public static EccSigningKey parse(byte[] keyBytes) throws CborException, CoseException {
     DataItem dataItem = CborUtils.decode(keyBytes);
     return decode(dataItem);
   }
 
-  public static SigningKey decode(DataItem cborKey) throws CborException, CoseException {
-    return new SigningKey(cborKey);
+  public static EccSigningKey decode(DataItem cborKey) throws CborException, CoseException {
+    return new EccSigningKey(cborKey);
   }
 }

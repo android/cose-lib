@@ -29,37 +29,37 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Test class for testing {@link SigningKey}
+ * Test class for testing {@link EccSigningKey}
  */
 @RunWith(JUnit4.class)
-public class SigningKeyTest {
+public class OkpSigningKeyTest {
   @Test
   public void testRoundTrip() throws CborException, CoseException {
-    final String xVal = "65eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d";
+    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
     final byte[] x = TestUtilities.hexStringToByteArray(xVal);
-    final String yVal = "1e52ed75701163f7f9e40ddf9f341b3dc9ba860af7e0ca7ca7e9eecd0084d19c";
-    final byte[] y = TestUtilities.hexStringToByteArray(yVal);
-    final String keyId = "meriadoc.brandybuck@buckland.example";
+    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    final byte[] d = TestUtilities.hexStringToByteArray(dVal);
+    final String keyId = "11";
     final Map map = new Map();
     map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
-        new UnsignedInteger(Headers.KEY_TYPE_ECC));
+        new UnsignedInteger(Headers.KEY_TYPE_OKP));
     map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID), new ByteString(keyId.getBytes()));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE),
-        new UnsignedInteger(Headers.CURVE_EC2_P256));
+        new UnsignedInteger(Headers.CURVE_OKP_Ed25519));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(x));
-    map.put(new NegativeInteger(Headers.KEY_PARAMETER_Y), new ByteString(y));
+    map.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(d));
 
-    final SigningKey key = new SigningKey(map);
+    final OkpSigningKey key = new OkpSigningKey(map);
     byte[] a = key.serialize();
 
-    final SigningKey newKey = SigningKey.parse(a);
+    final OkpSigningKey newKey = OkpSigningKey.parse(a);
 
-    Assert.assertEquals(Headers.KEY_TYPE_ECC, newKey.getKeyType());
+    Assert.assertEquals(Headers.KEY_TYPE_OKP, newKey.getKeyType());
     Assert.assertEquals(keyId, newKey.getKeyId());
-    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_EC2_P256),
+    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_Ed25519),
         newKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
     Assert.assertEquals(new ByteString(x), newKey.getLabels().get(Headers.KEY_PARAMETER_X));
-    Assert.assertEquals(new ByteString(y), newKey.getLabels().get(Headers.KEY_PARAMETER_Y));
+    Assert.assertEquals(new ByteString(d), newKey.getLabels().get(Headers.KEY_PARAMETER_D));
 
     byte[] b = newKey.serialize();
     Assert.assertEquals(a.length, b.length);
@@ -70,17 +70,17 @@ public class SigningKeyTest {
 
   @Test
   public void testConversion() throws CborException, CoseException {
-    final String cborString = "A4010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
-        + "4B624343167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
-    final String xVal = "5A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B624343167FE";
+    final String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
+        + "21A68F707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
     final ByteString x = new ByteString(TestUtilities.hexStringToByteArray(xVal));
-    final String yVal = "B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
-    final ByteString y = new ByteString(TestUtilities.hexStringToByteArray(yVal));
-    final SigningKey sKey = SigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
-    Assert.assertEquals(Headers.KEY_TYPE_ECC, sKey.getKeyType());
-    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_EC2_P256),
+    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    final ByteString d = new ByteString(TestUtilities.hexStringToByteArray(dVal));
+    final OkpSigningKey sKey = OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    Assert.assertEquals(Headers.KEY_TYPE_OKP, sKey.getKeyType());
+    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_Ed25519),
         sKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
     Assert.assertEquals(x, sKey.getLabels().get(Headers.KEY_PARAMETER_X));
-    Assert.assertEquals(y, sKey.getLabels().get(Headers.KEY_PARAMETER_Y));
+    Assert.assertEquals(d, sKey.getLabels().get(Headers.KEY_PARAMETER_D));
   }
 }

@@ -149,7 +149,7 @@ public class CoseUtils {
 
   private static ECGenParameterSpec getECCParameterSpecFromCurve(int curve) throws CoseException {
     if (curve == Headers.CURVE_EC2_P256) {
-      return new ECGenParameterSpec("prime256v1");
+      return new ECGenParameterSpec("secp256r1");
     } else {
       // TODO: Add support for other curves.
       throw new CoseException(String.format("Non ECC key found with curve %d.", curve));
