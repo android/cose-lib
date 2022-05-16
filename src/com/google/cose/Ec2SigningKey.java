@@ -26,38 +26,31 @@ import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
+import java.math.BigInteger;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Implements OKP COSE_Key spec for signing purposes.
- * Currently only supports Ed25519 curve.
- */
-public final class OkpSigningKey extends CoseKey {
-  byte[] privateKeyBytes;
-  byte[] publicKeyBytes;
+/** Implements EC2 COSE_Key spec for signing purposes. */
+public final class Ec2SigningKey extends CoseKey {
+  private static final int SIGN_POSITIVE = 1;
 
-  public OkpSigningKey(DataItem cborKey) throws CoseException, CborException {
+  KeyPair keyPair;
+
+  public Ec2SigningKey(DataItem cborKey) throws CoseException, CborException {
     super(cborKey);
 
-    if (keyType != Headers.KEY_TYPE_OKP) {
-      throw new CoseException("Expecting OKP key (type 1), found type " + keyType);
-    }
-    int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
-    if (curve != Headers.CURVE_OKP_Ed25519) {
-      throw new UnsupportedOperationException("Unsupported curve.");
-    }
-
-    privateKeyBytes = getPrivateKeyBytes();
-    publicKeyBytes = getPublicKeyBytes();
+    keyPair = getKeyPairFromCbor();
     if ((operations == null)
         || (operations.contains(Headers.KEY_OPERATIONS_VERIFY)
         && operations.contains(Headers.KEY_OPERATIONS_SIGN))) {
       return;
     }
-
     throw new CoseException("Signing key requires sign and verify operations.");
   }
 
@@ -66,18 +59,23 @@ public final class OkpSigningKey extends CoseKey {
     private Algorithm algorithm;
     private final List<Integer> operations;
     private byte[] baseIv;
+    private Integer curve = null;
     private byte[] xCor;
+    private byte[] yCor;
     private byte[] dCor;
 
     Builder() {
       operations = new ArrayList<>();
     }
 
-    public OkpSigningKey build() throws CoseException, CborException {
-      if (dCor == null && xCor == null) {
-        throw new CoseException("Need key material information.");
+    public Ec2SigningKey build() throws CoseException, CborException {
+      if ((curve == null) || (dCor == null && (xCor == null || yCor == null))) {
+        throw new CoseException("Need curve and key material information.");
       }
-
+      if (xCor == null ^ yCor == null) {
+        // If we have only one public key coordinate, raise an exception
+        throw new CoseException("Need both x and y coordinate information for EC2 public key.");
+      }
       if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
           && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
         throw new CoseException("Need Sign and Verify operation for the signing key.");
@@ -85,7 +83,7 @@ public final class OkpSigningKey extends CoseKey {
 
       Map cborKey = new Map();
       cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
-          new UnsignedInteger(Headers.KEY_TYPE_OKP));
+          new UnsignedInteger(Headers.KEY_TYPE_EC2));
 
       if (keyId != null) {
         cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID),
@@ -106,15 +104,18 @@ public final class OkpSigningKey extends CoseKey {
         cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_BASE_IV),
             new ByteString(baseIv));
       }
-      cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE),
-          new UnsignedInteger(Headers.CURVE_OKP_Ed25519));
+
+      cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE), new UnsignedInteger(curve));
       if (xCor != null) {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(xCor));
+      }
+      if (yCor != null) {
+        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_Y), new ByteString(yCor));
       }
       if (dCor != null) {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dCor));
       }
-      return new OkpSigningKey(cborKey);
+      return new Ec2SigningKey(cborKey);
     }
 
     public Builder withKeyId(String keyId) {
@@ -137,8 +138,21 @@ public final class OkpSigningKey extends CoseKey {
       return this;
     }
 
+    public Builder withCurve(int curve) throws CoseException {
+      if ((curve < 0) || (curve > Headers.CURVE_EC2_P521)) {
+        throw new CoseException("Unsupported Curve provided.");
+      }
+      this.curve = curve;
+      return this;
+    }
+
     public Builder withXCoordinate(byte[] xCor) {
       this.xCor = xCor;
+      return this;
+    }
+
+    public Builder withYCoordinate(byte[] yCor) {
+      this.yCor = yCor;
       return this;
     }
 
@@ -152,26 +166,57 @@ public final class OkpSigningKey extends CoseKey {
     return new Builder();
   }
 
-  private byte[] getPrivateKeyBytes() throws CborException {
+  private KeyPair getKeyPairFromCbor() throws CoseException, CborException {
+    if (keyType != Headers.KEY_TYPE_EC2) {
+      throw new CoseException("Expecting EC2 key (type 2), found type " + keyType);
+    }
+
+    final KeyPair keyPair;
+    // Get curve information
+    int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
+
+    // Get private key.
+    final PrivateKey privateKey;
     if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
-      return CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
+      final ByteString key = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D));
+      privateKey = CoseUtils.getEc2PrivateKeyFromCoordinate(
+          curve,
+          new BigInteger(SIGN_POSITIVE, key.getBytes())
+      );
+    } else {
+      privateKey = null;
     }
-    return null;
+
+    if (!labels.containsKey(Headers.KEY_PARAMETER_X)) {
+      if (privateKey == null) {
+        throw new IllegalStateException("Missing key material information.");
+      } else {
+        return new KeyPair(null, privateKey);
+      }
+    }
+
+    final ByteString xCor = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X));
+    // Get the public key for EC2 key.
+    // We should not have a case where x is provided but y is not.
+    if (!labels.containsKey(Headers.KEY_PARAMETER_Y)) {
+      throw new IllegalStateException("X coordinate provided but Y coordinate is missing.");
+    }
+    final ByteString yCor = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_Y));
+    final PublicKey publicKey = CoseUtils.getEc2PublicKeyFromCoordinates(
+        curve,
+        new BigInteger(SIGN_POSITIVE, xCor.getBytes()),
+        new BigInteger(SIGN_POSITIVE, yCor.getBytes())
+    );
+    keyPair = new KeyPair(publicKey, privateKey);
+    return keyPair;
   }
 
-  private byte[] getPublicKeyBytes() throws CborException {
-    if (labels.containsKey(Headers.KEY_PARAMETER_X)) {
-      return CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X)).getBytes();
-    }
-    return null;
-  }
-
-  public static OkpSigningKey parse(byte[] keyBytes) throws CborException, CoseException {
+  public static Ec2SigningKey parse(byte[] keyBytes) throws CborException, CoseException {
     DataItem dataItem = CborUtils.decode(keyBytes);
     return decode(dataItem);
   }
 
-  public static OkpSigningKey decode(DataItem cborKey) throws CborException, CoseException {
-    return new OkpSigningKey(cborKey);
+  public static Ec2SigningKey decode(DataItem cborKey) throws CborException, CoseException {
+    return new Ec2SigningKey(cborKey);
   }
 }

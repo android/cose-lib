@@ -53,11 +53,7 @@ public class EncryptionKeyTest {
     Assert.assertEquals(keyId, newKey.getKeyId());
     Assert.assertEquals(new ByteString(k), newKey.getLabels().get(Headers.KEY_PARAMETER_K));
 
-    byte[] b = newKey.serialize();
-    Assert.assertEquals(a.length, b.length);
-    for (int i = 0; i < a.length; i++) {
-      Assert.assertEquals(a[i], b[i]);
-    }
+    Assert.assertArrayEquals(a, newKey.serialize());
   }
 
   @Test
@@ -69,5 +65,17 @@ public class EncryptionKeyTest {
     final EncryptionKey eKey = EncryptionKey.parse(TestUtilities.hexStringToByteArray(cborString));
     Assert.assertEquals(Headers.KEY_TYPE_SYMMETRIC, eKey.getKeyType());
     Assert.assertEquals(k, eKey.getLabels().get(Headers.KEY_PARAMETER_K));
+  }
+
+  @Test
+  public void testBuilder() throws CborException, CoseException {
+    final String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E6"
+        + "42E6578616D706C6520582065EDA5A12577C2BAE829437FE338701A10AAA375E1BB5B5DE108DE439C08551D";
+    final String kVal = "65eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d";
+    EncryptionKey encryptionKey = EncryptionKey.builder()
+        .withSecretKey(TestUtilities.hexStringToByteArray(kVal))
+        .withKeyId("meriadoc.brandybuck@buckland.example")
+        .build();
+    Assert.assertEquals(cborString, TestUtilities.bytesToHexString(encryptionKey.serialize()));
   }
 }

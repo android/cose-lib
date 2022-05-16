@@ -119,7 +119,7 @@ public class SignMessage extends CoseMessage {
   public static SignMessage decode(DataItem cborMessage) throws CoseException, CborException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 4) {
-      throw new CoseException("Error while decoding EncryptMessage. Expected 4 items,"
+      throw new CoseException("Error while decoding SignMessage. Expected 4 items,"
           + "received " + messageArray.size());
     }
 

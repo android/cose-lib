@@ -20,22 +20,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Implements COSE_KeySet. Just has a bunch of keys but would remain majorly unimplemented till we
+ * Implements COSE_KeySet. Just has a bunch of keys but would remain majorly untouched till we
  * have a proper use case.
  */
-public class KeySet {
-  private final List<Key> keys;
+public class CoseKeySet {
+  private final List<CoseKey> coseKeys;
 
-  public KeySet(List<Key> keys) {
-    this.keys = new ArrayList<>();
-    this.keys.addAll(keys);
+  public CoseKeySet(List<CoseKey> coseKeys) {
+    this.coseKeys = new ArrayList<>();
+    this.coseKeys.addAll(coseKeys);
   }
 
-  public void addKeyToKeySet(final Key key) {
-    this.keys.add(key);
+  public void addKeyToKeySet(final CoseKey coseKey) {
+    this.coseKeys.add(coseKey);
   }
 
-  public List<Key> getKeys() {
-    return keys;
+  public List<CoseKey> getKeys() {
+    return coseKeys;
   }
 }

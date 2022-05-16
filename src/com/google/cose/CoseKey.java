@@ -17,35 +17,34 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
+import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
+import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
+import co.nstant.in.cbor.model.NegativeInteger;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 /**
- * Generates an abstract class for COSE_Key which would be used for implementing keys for other
+ * Abstract class for COSE_Key which would be used for implementing keys for other
  * functionalities like SigningKey, EncryptionKey and MacKey. We can implement more keys once we
  * know of use cases.
  */
-public abstract class Key {
+public abstract class CoseKey {
   protected String keyId;
   protected int keyType;
   protected Integer algorithm;
   protected List<Integer> operations;
   protected byte[] baseIv;
-  protected LinkedHashMap<Integer, DataItem> labels;
+  protected java.util.Map<Integer, DataItem> labels;
 
   protected DataItem cborKey;
 
-  public Key() {
-  }
-
-  public Key(DataItem cborKey) throws CborException {
+  public CoseKey(DataItem cborKey) throws CborException {
     this.cborKey = cborKey;
     if (cborKey != null) {
       populate();
@@ -60,7 +59,7 @@ public abstract class Key {
     return CborUtils.encode(cborKey);
   }
 
-  void populate() throws CborException {
+  private void populate() throws CborException {
     final Map keyMap = CborUtils.asMap(cborKey);
     final DataItem type = CoseUtils.getValueFromMap(keyMap, Headers.KEY_PARAMETER_KEY_TYPE);
 
@@ -97,7 +96,7 @@ public abstract class Key {
     return keyType;
   }
 
-  public LinkedHashMap<Integer, DataItem> getLabels() {
+  public java.util.Map<Integer, DataItem> getLabels() {
     return labels;
   }
 }

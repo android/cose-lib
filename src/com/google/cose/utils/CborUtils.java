@@ -109,7 +109,9 @@ public class CborUtils {
    * @throws CborException if dataItem is neither UnsignedInteger not NegativeInteger
    */
   public static int asInteger(final DataItem dataItem) throws CborException {
-    if (dataItem.getMajorType() == MajorType.UNSIGNED_INTEGER) {
+    if (dataItem == null) {
+      throw new CborException("Null object passed.");
+    } else if (dataItem.getMajorType() == MajorType.UNSIGNED_INTEGER) {
       return ((UnsignedInteger) dataItem).getValue().intValue();
     } else if (dataItem.getMajorType() == MajorType.NEGATIVE_INTEGER) {
       return ((NegativeInteger) dataItem).getValue().intValue();

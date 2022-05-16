@@ -17,25 +17,24 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
+import co.nstant.in.cbor.model.Array;
+import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.MajorType;
+import co.nstant.in.cbor.model.Map;
+import co.nstant.in.cbor.model.NegativeInteger;
+import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-/** Implements COSE_Key spec for encryption purposes. */
-public final class MacKey extends Key {
+/** Implements COSE_Key spec for MAC purposes. */
+public final class MacKey extends CoseKey {
   private final byte[] secretKey;
-
-  public MacKey(byte[] secretKey) {
-    this.secretKey = secretKey;
-    this.cborKey = null;
-  }
-
-  public MacKey(DataItem cborKey, byte[] secretKey) throws CborException {
-    super(cborKey);
-    this.secretKey = secretKey;
-  }
 
   private MacKey(final DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
@@ -51,7 +50,87 @@ public final class MacKey extends Key {
         && operations.contains(Headers.KEY_OPERATIONS_MAC_VERIFY))) {
       return;
     }
-    throw new CoseException("Encryption key requires encrypt and decrypt operations.");
+    throw new CoseException("Mac key requires create mac and verify mac operations.");
+  }
+
+  static class Builder {
+    private String keyId;
+    private Algorithm algorithm;
+    private final List<Integer> operations;
+    private byte[] baseIv;
+    private byte[] secretKey;
+
+    Builder() {
+      operations = new ArrayList<>();
+    }
+
+    public MacKey build() throws CoseException, CborException {
+      if (secretKey == null) {
+        throw new CoseException("Need key material information.");
+      }
+
+      if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_MAC_CREATE)
+          && !operations.contains(Headers.KEY_OPERATIONS_MAC_VERIFY)) {
+        throw new CoseException("Need CreateMac and VerifyMac operation for MAC key.");
+      }
+
+      Map cborKey = new Map();
+      cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
+          new UnsignedInteger(Headers.KEY_TYPE_SYMMETRIC));
+
+      if (keyId != null) {
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID),
+            new ByteString(keyId.getBytes()));
+      }
+      if (algorithm != null) {
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_ALGORITHM),
+            algorithm.getCoseAlgorithmId());
+      }
+      if (operations.size() != 0) {
+        Array keyOperations = new Array();
+        for (int operation: operations) {
+          keyOperations.add(new UnsignedInteger(operation));
+        }
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_OPERATIONS), keyOperations);
+      }
+      if (baseIv != null) {
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_BASE_IV),
+            new ByteString(baseIv));
+      }
+      if (secretKey != null) {
+        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_K), new ByteString(secretKey));
+      }
+      return new MacKey(cborKey);
+    }
+
+    public Builder withKeyId(String keyId) {
+      this.keyId = keyId;
+      return this;
+    }
+
+    public Builder withAlgorithm(Algorithm algorithm) {
+      this.algorithm = algorithm;
+      return this;
+    }
+
+    public Builder withOperations(Integer...operations) {
+      this.operations.addAll(Arrays.asList(operations));
+      return this;
+    }
+
+    public Builder withBaseIv(byte[] baseIv) {
+      this.baseIv = baseIv;
+      return this;
+    }
+
+    public Builder withSecretKey(byte[] k) {
+      this.secretKey = k;
+      return this;
+    }
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public static MacKey parse(byte[] keyBytes) throws CborException, CoseException {

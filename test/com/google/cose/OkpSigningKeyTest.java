@@ -29,7 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Test class for testing {@link EccSigningKey}
+ * Test class for testing {@link OkpSigningKey}
  */
 @RunWith(JUnit4.class)
 public class OkpSigningKeyTest {
@@ -82,5 +82,18 @@ public class OkpSigningKeyTest {
         sKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
     Assert.assertEquals(x, sKey.getLabels().get(Headers.KEY_PARAMETER_X));
     Assert.assertEquals(d, sKey.getLabels().get(Headers.KEY_PARAMETER_D));
+  }
+
+  @Test
+  public void testBuilder() throws CborException, CoseException {
+    final String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
+        + "21A68F707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
+    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    OkpSigningKey key = OkpSigningKey.builder()
+        .withXCoordinate(TestUtilities.hexStringToByteArray(xVal))
+        .withDCoordinate(TestUtilities.hexStringToByteArray(dVal))
+        .build();
+    Assert.assertEquals(cborString, TestUtilities.bytesToHexString(key.serialize()));
   }
 }

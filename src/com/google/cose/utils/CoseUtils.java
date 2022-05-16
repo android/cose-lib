@@ -38,10 +38,9 @@ import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 
 public class CoseUtils {
-
   private static final String EC_PARAMETER_SPEC = "EC";
 
   public static DataItem encodeStructure(String context, Map protectedBodyHeaders,
@@ -67,9 +66,9 @@ public class CoseUtils {
     return arrayBuilder.end().build().get(0);
   }
 
-  public static LinkedHashMap<Integer, DataItem> getLabelsFromMap(Map keyMap)
+  public static java.util.Map<Integer, DataItem> getLabelsFromMap(Map keyMap)
       throws CborException {
-    final LinkedHashMap<Integer, DataItem> labels = new LinkedHashMap<>();
+    final java.util.Map<Integer, DataItem> labels = new HashMap<>();
     for (DataItem item : keyMap.getKeys()) {
       labels.put(CborUtils.asInteger(item), keyMap.get(item));
     }
@@ -77,23 +76,23 @@ public class CoseUtils {
   }
 
   /**
-   * Returns DataItem from a cbor map based on Integer index.
+   * Returns DataItem from a cbor map based on Integer value.
    * @param cborMap map that has the information.
-   * @param index integer index to be used as key in the map.
+   * @param value integer to be used as key in the map.
    * @return value in the map corresponding to key
    */
-  public static DataItem getValueFromMap(Map cborMap, int index) {
+  public static DataItem getValueFromMap(Map cborMap, int value) {
     final Number key;
-    if (index >= 0) {
-      key = new UnsignedInteger(index);
+    if (value >= 0) {
+      key = new UnsignedInteger(value);
     } else {
-      key = new NegativeInteger(index);
+      key = new NegativeInteger(value);
     }
     return cborMap.get(key);
   }
 
   /**
-   * Generates ECC Private Key from d coordinate value.
+   * Generates EC2 Private Key from d coordinate value.
    *
    * Only supports P256 curve currently.
    * @param curve supported curve
@@ -101,13 +100,14 @@ public class CoseUtils {
    * @return PrivateKey JCA implementation
    * @throws CoseException if unsupported key curve is used.
    */
-  public static PrivateKey generateEccPrivateKey(int curve, BigInteger d) throws CoseException {
+  public static PrivateKey getEc2PrivateKeyFromCoordinate(int curve, BigInteger d)
+      throws CoseException {
     try {
       if (d == null) {
-        return null;
+        throw new CoseException("Cannot decode private key. Missing coordinate information.");
       }
       final AlgorithmParameters parameters = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      parameters.init(getECCParameterSpecFromCurve(curve));
+      parameters.init(getEC2ParameterSpecFromCurve(curve));
       final ECParameterSpec ecParameters = parameters.getParameterSpec(ECParameterSpec.class);
       final ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(d, ecParameters);
       return KeyFactory.getInstance(EC_PARAMETER_SPEC).generatePrivate(privateKeySpec);
@@ -118,7 +118,7 @@ public class CoseUtils {
   }
 
   /**
-   * Generates ECC Public Key from x and y coordinate values.
+   * Generates EC2 Public Key from x and y coordinate values.
    *
    * Only supports P256 curve currently.
    * @param curve supported curve
@@ -127,15 +127,15 @@ public class CoseUtils {
    * @return PublicKey JCA implementation
    * @throws CoseException if unsupported key curve is used.
    */
-  public static PublicKey generateEccPublicKey(int curve, BigInteger x, BigInteger y)
+  public static PublicKey getEc2PublicKeyFromCoordinates(int curve, BigInteger x, BigInteger y)
       throws CoseException {
     try {
       if (x == null || y == null) {
         // Should not reach here since we should be able to catch it during decoding key.
-        throw new CoseException("Cannot decode key. Missing coordinate information.");
+        throw new CoseException("Cannot decode public key. Missing coordinate information.");
       }
       final AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      params.init(getECCParameterSpecFromCurve(curve));
+      params.init(getEC2ParameterSpecFromCurve(curve));
       final ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
 
       final ECPoint ecPoint = new ECPoint(x, y);
@@ -147,12 +147,15 @@ public class CoseUtils {
     }
   }
 
-  private static ECGenParameterSpec getECCParameterSpecFromCurve(int curve) throws CoseException {
+  private static ECGenParameterSpec getEC2ParameterSpecFromCurve(int curve) throws CoseException {
     if (curve == Headers.CURVE_EC2_P256) {
       return new ECGenParameterSpec("secp256r1");
+    } else if (curve == Headers.CURVE_EC2_P384) {
+      return new ECGenParameterSpec("secp384r1");
+    } else if (curve == Headers.CURVE_EC2_P521) {
+      return new ECGenParameterSpec("secp521r1");
     } else {
-      // TODO: Add support for other curves.
-      throw new CoseException(String.format("Non ECC key found with curve %d.", curve));
+      throw new CoseException("Non EC2 key found with curve " + curve);
     }
   }
 }
