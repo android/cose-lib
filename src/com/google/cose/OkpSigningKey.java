@@ -27,9 +27,9 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Implements OKP COSE_Key spec for signing purposes.
@@ -47,35 +47,34 @@ public final class OkpSigningKey extends CoseKey {
     }
     int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
     if (curve != Headers.CURVE_OKP_Ed25519) {
-      throw new UnsupportedOperationException("Unsupported curve.");
+      throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
     }
 
     privateKeyBytes = getPrivateKeyBytes();
     publicKeyBytes = getPublicKeyBytes();
-    if ((operations == null)
-        || (operations.contains(Headers.KEY_OPERATIONS_VERIFY)
-        && operations.contains(Headers.KEY_OPERATIONS_SIGN))) {
-      return;
-    }
 
-    throw new CoseException("Signing key requires sign and verify operations.");
+    if ((operations != null)
+        && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
+        && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
+      throw new CoseException("Signing key requires either sign or verify operation.");
+    }
   }
 
   static class Builder {
     private String keyId;
     private Algorithm algorithm;
-    private final List<Integer> operations;
+    private final Set<Integer> operations;
     private byte[] baseIv;
     private byte[] xCor;
-    private byte[] dCor;
+    private byte[] dParameter;
 
     Builder() {
-      operations = new ArrayList<>();
+      operations = new HashSet<>();
     }
 
     public OkpSigningKey build() throws CoseException, CborException {
-      if (dCor == null && xCor == null) {
-        throw new CoseException("Need key material information.");
+      if (dParameter == null && xCor == null) {
+        throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       }
 
       if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
@@ -111,8 +110,8 @@ public final class OkpSigningKey extends CoseKey {
       if (xCor != null) {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(xCor));
       }
-      if (dCor != null) {
-        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dCor));
+      if (dParameter != null) {
+        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dParameter));
       }
       return new OkpSigningKey(cborKey);
     }
@@ -142,8 +141,8 @@ public final class OkpSigningKey extends CoseKey {
       return this;
     }
 
-    public Builder withDCoordinate(byte[] dCor) {
-      this.dCor = dCor;
+    public Builder withDParameter(byte[] dParam) {
+      this.dParameter = dParam;
       return this;
     }
   }

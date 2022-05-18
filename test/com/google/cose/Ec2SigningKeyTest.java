@@ -105,7 +105,7 @@ public class Ec2SigningKeyTest {
     final String d = "5A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B624343167FE";
     Ec2SigningKey signingKey = Ec2SigningKey.builder()
         .withCurve(Headers.CURVE_EC2_P256)
-        .withDCoordinate(TestUtilities.hexStringToByteArray(d))
+        .withDParameter(TestUtilities.hexStringToByteArray(d))
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(signingKey.serialize()));
   }

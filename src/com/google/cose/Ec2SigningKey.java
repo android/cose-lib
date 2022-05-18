@@ -32,9 +32,9 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /** Implements EC2 COSE_Key spec for signing purposes. */
 public final class Ec2SigningKey extends CoseKey {
@@ -46,31 +46,33 @@ public final class Ec2SigningKey extends CoseKey {
     super(cborKey);
 
     keyPair = getKeyPairFromCbor();
-    if ((operations == null)
-        || (operations.contains(Headers.KEY_OPERATIONS_VERIFY)
-        && operations.contains(Headers.KEY_OPERATIONS_SIGN))) {
-      return;
+
+    if ((operations != null)
+        && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
+        && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
+      throw new CoseException("Signing key requires either sign or verify operation.");
     }
-    throw new CoseException("Signing key requires sign and verify operations.");
   }
 
   static class Builder {
     private String keyId;
     private Algorithm algorithm;
-    private final List<Integer> operations;
+    private final Set<Integer> operations;
     private byte[] baseIv;
     private Integer curve = null;
     private byte[] xCor;
     private byte[] yCor;
-    private byte[] dCor;
+    private byte[] dParameter;
 
     Builder() {
-      operations = new ArrayList<>();
+      operations = new HashSet<>();
     }
 
     public Ec2SigningKey build() throws CoseException, CborException {
-      if ((curve == null) || (dCor == null && (xCor == null || yCor == null))) {
-        throw new CoseException("Need curve and key material information.");
+      if (curve == null) {
+        throw new CoseException("Need curve information.");
+      } else if (dParameter == null && (xCor == null || yCor == null)) {
+        throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       }
       if (xCor == null ^ yCor == null) {
         // If we have only one public key coordinate, raise an exception
@@ -112,8 +114,8 @@ public final class Ec2SigningKey extends CoseKey {
       if (yCor != null) {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_Y), new ByteString(yCor));
       }
-      if (dCor != null) {
-        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dCor));
+      if (dParameter != null) {
+        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dParameter));
       }
       return new Ec2SigningKey(cborKey);
     }
@@ -140,7 +142,7 @@ public final class Ec2SigningKey extends CoseKey {
 
     public Builder withCurve(int curve) throws CoseException {
       if ((curve < 0) || (curve > Headers.CURVE_EC2_P521)) {
-        throw new CoseException("Unsupported Curve provided.");
+        throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
       }
       this.curve = curve;
       return this;
@@ -156,8 +158,8 @@ public final class Ec2SigningKey extends CoseKey {
       return this;
     }
 
-    public Builder withDCoordinate(byte[] dCor) {
-      this.dCor = dCor;
+    public Builder withDParameter(byte[] dParam) {
+      this.dParameter = dParam;
       return this;
     }
   }
@@ -189,7 +191,7 @@ public final class Ec2SigningKey extends CoseKey {
 
     if (!labels.containsKey(Headers.KEY_PARAMETER_X)) {
       if (privateKey == null) {
-        throw new IllegalStateException("Missing key material information.");
+        throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       } else {
         return new KeyPair(null, privateKey);
       }

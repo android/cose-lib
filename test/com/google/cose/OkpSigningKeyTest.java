@@ -92,7 +92,7 @@ public class OkpSigningKeyTest {
     final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
     OkpSigningKey key = OkpSigningKey.builder()
         .withXCoordinate(TestUtilities.hexStringToByteArray(xVal))
-        .withDCoordinate(TestUtilities.hexStringToByteArray(dVal))
+        .withDParameter(TestUtilities.hexStringToByteArray(dVal))
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(key.serialize()));
   }

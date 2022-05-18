@@ -28,9 +28,9 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /** Implements COSE_Key spec for encryption purposes. */
 public final class EncryptionKey extends CoseKey {
@@ -42,31 +42,30 @@ public final class EncryptionKey extends CoseKey {
         && labels.get(Headers.KEY_PARAMETER_K).getMajorType() == MajorType.BYTE_STRING) {
       secretKey = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_K)).getBytes();
     } else {
-      throw new IllegalStateException("Need key material information.");
+      throw new CoseException("Missing key material information.");
     }
 
-    if ((operations == null)
-        || (operations.contains(Headers.KEY_OPERATIONS_DECRYPT)
-        && operations.contains(Headers.KEY_OPERATIONS_ENCRYPT))) {
-      return;
+    if ((operations != null)
+        && !operations.contains(Headers.KEY_OPERATIONS_DECRYPT)
+        && !operations.contains(Headers.KEY_OPERATIONS_ENCRYPT)) {
+      throw new CoseException("Encryption key requires either encrypt or decrypt operation.");
     }
-    throw new CoseException("Encryption key requires encrypt and decrypt operations.");
   }
 
   static class Builder {
     private String keyId;
     private Algorithm algorithm;
-    private final List<Integer> operations;
+    private final Set<Integer> operations;
     private byte[] baseIv;
     private byte[] secretKey;
 
     Builder() {
-      operations = new ArrayList<>();
+      operations = new HashSet<>();
     }
 
     public EncryptionKey build() throws CoseException, CborException {
       if (secretKey == null) {
-        throw new CoseException("Need key material information.");
+        throw new CoseException("Missing key material information.");
       }
 
       if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_DECRYPT)
