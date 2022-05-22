@@ -28,8 +28,7 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /** Implements COSE_Key spec for MAC purposes. */
@@ -55,22 +54,13 @@ public final class MacKey extends CoseKey {
   static class Builder {
     private String keyId;
     private Algorithm algorithm;
-    private final Set<Integer> operations;
+    private final Set<Integer> operations = new LinkedHashSet<>();
     private byte[] baseIv;
     private byte[] secretKey;
-
-    Builder() {
-      operations = new HashSet<>();
-    }
 
     public MacKey build() throws CoseException, CborException {
       if (secretKey == null) {
         throw new CoseException("Missing key material information.");
-      }
-
-      if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_MAC_CREATE)
-          && !operations.contains(Headers.KEY_OPERATIONS_MAC_VERIFY)) {
-        throw new CoseException("Need CreateMac and VerifyMac operation for MAC key.");
       }
 
       Map cborKey = new Map();
@@ -112,8 +102,12 @@ public final class MacKey extends CoseKey {
       return this;
     }
 
-    public Builder withOperations(Integer...operations) {
-      this.operations.addAll(Arrays.asList(operations));
+    public Builder withOperations(Integer...operations) throws CoseException {
+      for (int operation : operations) {
+        if (operation != Headers.KEY_OPERATIONS_MAC_CREATE && operation != Headers.KEY_OPERATIONS_MAC_VERIFY)
+          throw new CoseException("Mac key only supports CreateMac and VerifyMac operations.");
+        this.operations.add(operation);
+      }
       return this;
     }
 

@@ -92,11 +92,11 @@ public class CoseUtils {
   }
 
   /**
-   * Generates EC2 Private Key from d coordinate value.
+   * Generates EC2 Private Key from d parameter.
    *
    * Only supports P256 curve currently.
    * @param curve supported curve
-   * @param d raw bytes for the private key coordinate.
+   * @param d BigInteger representation for the private key bytes.
    * @return PrivateKey JCA implementation
    * @throws CoseException if unsupported key curve is used.
    */
@@ -111,9 +111,8 @@ public class CoseUtils {
       final ECParameterSpec ecParameters = parameters.getParameterSpec(ECParameterSpec.class);
       final ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(d, ecParameters);
       return KeyFactory.getInstance(EC_PARAMETER_SPEC).generatePrivate(privateKeySpec);
-    } catch (final NoSuchAlgorithmException | InvalidParameterSpecException
-        | InvalidKeySpecException ex) {
-      throw new IllegalStateException("Unexpected error", ex);
+    } catch (NoSuchAlgorithmException | InvalidParameterSpecException | InvalidKeySpecException e) {
+      throw new IllegalStateException("Unexpected error", e);
     }
   }
 

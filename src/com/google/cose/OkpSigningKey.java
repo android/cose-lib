@@ -27,8 +27,7 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -63,23 +62,14 @@ public final class OkpSigningKey extends CoseKey {
   static class Builder {
     private String keyId;
     private Algorithm algorithm;
-    private final Set<Integer> operations;
+    private final Set<Integer> operations = new LinkedHashSet<>();
     private byte[] baseIv;
     private byte[] xCor;
     private byte[] dParameter;
 
-    Builder() {
-      operations = new HashSet<>();
-    }
-
     public OkpSigningKey build() throws CoseException, CborException {
       if (dParameter == null && xCor == null) {
         throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
-      }
-
-      if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
-          && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
-        throw new CoseException("Need Sign and Verify operation for the signing key.");
       }
 
       Map cborKey = new Map();
@@ -126,8 +116,12 @@ public final class OkpSigningKey extends CoseKey {
       return this;
     }
 
-    public Builder withOperations(Integer...operations) {
-      this.operations.addAll(Arrays.asList(operations));
+    public Builder withOperations(Integer...operations) throws CoseException {
+      for (int operation : operations) {
+        if (operation != Headers.KEY_OPERATIONS_SIGN && operation != Headers.KEY_OPERATIONS_VERIFY)
+          throw new CoseException("Signing key only supports Sign and Verify operations.");
+        this.operations.add(operation);
+      }
       return this;
     }
 

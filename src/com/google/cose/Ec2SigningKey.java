@@ -32,8 +32,7 @@ import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /** Implements EC2 COSE_Key spec for signing purposes. */
@@ -57,30 +56,23 @@ public final class Ec2SigningKey extends CoseKey {
   static class Builder {
     private String keyId;
     private Algorithm algorithm;
-    private final Set<Integer> operations;
+    private final Set<Integer> operations = new LinkedHashSet<>();
     private byte[] baseIv;
     private Integer curve = null;
     private byte[] xCor;
     private byte[] yCor;
     private byte[] dParameter;
 
-    Builder() {
-      operations = new HashSet<>();
-    }
-
     public Ec2SigningKey build() throws CoseException, CborException {
       if (curve == null) {
         throw new CoseException("Need curve information.");
-      } else if (dParameter == null && (xCor == null || yCor == null)) {
+      }
+      if (dParameter == null && (xCor == null || yCor == null)) {
         throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       }
       if (xCor == null ^ yCor == null) {
         // If we have only one public key coordinate, raise an exception
         throw new CoseException("Need both x and y coordinate information for EC2 public key.");
-      }
-      if (operations.size() != 0 && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
-          && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
-        throw new CoseException("Need Sign and Verify operation for the signing key.");
       }
 
       Map cborKey = new Map();
@@ -130,8 +122,12 @@ public final class Ec2SigningKey extends CoseKey {
       return this;
     }
 
-    public Builder withOperations(Integer...operations) {
-      this.operations.addAll(Arrays.asList(operations));
+    public Builder withOperations(Integer...operations) throws CoseException {
+      for (int operation : operations) {
+        if (operation != Headers.KEY_OPERATIONS_SIGN && operation != Headers.KEY_OPERATIONS_VERIFY)
+          throw new CoseException("Signing key only supports Sign and Verify operations.");
+        this.operations.add(operation);
+      }
       return this;
     }
 
