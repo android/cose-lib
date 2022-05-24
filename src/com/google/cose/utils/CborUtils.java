@@ -25,6 +25,7 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
+import co.nstant.in.cbor.model.UnicodeString;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import java.io.ByteArrayInputStream;
@@ -100,6 +101,19 @@ public class CborUtils {
           String.format("Expected a byte string, got %s", dataItem.getMajorType().name()));
     }
     return (ByteString) dataItem;
+  }
+
+  /**
+   * Returns the {@link DataItem} as a {@link UnicodeString}.
+   * @param dataItem cborObject to be converted to UnicodeString.
+   * @return UnicodeString object
+   */
+  public static UnicodeString asUnicodeString(final DataItem dataItem) throws CborException {
+    if (dataItem.getMajorType() != MajorType.UNICODE_STRING) {
+      throw new CborException(
+          String.format("Expected a unicode string, got %s", dataItem.getMajorType().name()));
+    }
+    return (UnicodeString) dataItem;
   }
 
   /**

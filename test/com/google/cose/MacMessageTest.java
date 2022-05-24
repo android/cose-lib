@@ -39,19 +39,18 @@ public class MacMessageTest {
           + "F48BD63484986565105C9AD5A6682F6818340A20125044A6F75722D73656372657440"
     ));
     Assert.assertEquals(TestUtilities.CONTENT, new String(message.getMessage()));
-    Map headers = message.getProtectedHeaders();
-    Assert.assertEquals(Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId(),
-        headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
-    Assert.assertEquals(1, headers.getKeys().size());
     Assert.assertEquals("A10105",
-        TestUtilities.bytesToHexString(message.getProtectedHeaderBytes()));
+        TestUtilities.bytesToHexString(CborUtils.encode(message.getProtectedHeaders())));
+    Assert.assertEquals(Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId(),
+        message.getProtectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
+    Assert.assertEquals(1, message.getProtectedHeaders().getKeys().size());
     Assert.assertEquals(0, message.getUnprotectedHeaders().getKeys().size());
     Assert.assertEquals("2BDCC89F058216B8A208DDC6D8B54AA91F48BD63484986565105C9AD5A6682F6",
         TestUtilities.bytesToHexString(message.getTag()));
     Assert.assertEquals(1, message.recipients.size());
 
     Recipient r = message.recipients.get(0);
-    Assert.assertEquals("", TestUtilities.bytesToHexString(r.getProtectedHeaderBytes()));
+    Assert.assertEquals(0, r.getProtectedHeaders().getKeys().size());
     Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId(),
         r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
     Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
@@ -74,11 +73,11 @@ public class MacMessageTest {
     Recipient r = Recipient.builder()
         .withCiphertext(new byte[0])
         .withUnprotectedHeaders(unprotectedHeaders)
-        .withProtectedHeaderBytes(new byte[0])
+        .withProtectedHeaders(new Map())
         .build();
 
     MacMessage message = MacMessage.builder()
-        .withProtectedHeaderBytes(CborUtils.encode(protectedHeaders))
+        .withProtectedHeaders(protectedHeaders)
         .withUnprotectedHeaders(new Map())
         .withMessage(TestUtilities.CONTENT.getBytes())
         .withTag(TestUtilities.hexStringToByteArray(

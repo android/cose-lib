@@ -23,6 +23,7 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 import java.util.List;
 
 /**
@@ -32,40 +33,28 @@ public class Mac0Message extends CoseMessage {
   private final byte[] message;
   private final byte[] tag;
 
-  Mac0Message(byte[] protectedHeaderBytes, Map unprotectedHeaders, byte[] message, byte[] tag) {
-    super(protectedHeaderBytes, unprotectedHeaders);
+  Mac0Message(Map protectedHeaders, Map unprotectedHeaders, byte[] message, byte[] tag) {
+    super(protectedHeaders, unprotectedHeaders);
     this.message = message;
     this.tag = tag;
   }
 
   static class Builder {
-    private byte[] protectedHeaderBytes;
+    private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;
     private byte[] tag;
     public Mac0Message build() throws CoseException {
-      if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (message != null)
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (message != null)
           && (tag != null)) {
-        return new Mac0Message(protectedHeaderBytes, unprotectedHeaders, message, tag);
+        return new Mac0Message(protectedHeaders, unprotectedHeaders, message, tag);
       } else {
         throw new CoseException("Some fields are missing.");
       }
     }
 
-    public Builder withProtectedHeaderBytes(byte[] protectedHeaderBytes) {
-      this.protectedHeaderBytes = protectedHeaderBytes;
-      return this;
-    }
-
     public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
-      if (protectedHeaderBytes != null) {
-        throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
-      }
-      if (protectedHeaders == null || protectedHeaders.getKeys().size() == 0) {
-        this.protectedHeaderBytes = new byte[0];
-      } else {
-        this.protectedHeaderBytes = CborUtils.encode(protectedHeaders);
-      }
+      this.protectedHeaders = protectedHeaders;
       return this;
     }
 
@@ -86,9 +75,11 @@ public class Mac0Message extends CoseMessage {
   }
 
   @Override
-  public DataItem encode() {
+  public DataItem encode() throws CborException {
     ArrayBuilder<CborBuilder> macArrayBuilder = new CborBuilder().addArray();
-    macArrayBuilder.add(getProtectedHeaderBytes()).add(getUnprotectedHeaders()).add(message)
+    macArrayBuilder
+        .add(CoseUtils.serializeProtectedHeaders(getProtectedHeaders()))
+        .add(getUnprotectedHeaders()).add(message)
         .add(tag);
     return macArrayBuilder.end().build().get(0);
   }
@@ -103,8 +94,9 @@ public class Mac0Message extends CoseMessage {
       throw new CoseException("Error while decoding Mac0Message. Expected 4 items,"
           + "received " + messageArray.size());
     }
+    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return Mac0Message.builder()
-        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
         .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())

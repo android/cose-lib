@@ -23,6 +23,7 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -34,15 +35,15 @@ public class EncryptMessage extends CoseMessage {
   private final byte[] ciphertext;
   private final List<Recipient> recipients;
 
-  EncryptMessage(byte[] protectedHeaderBytes, Map unprotectedHeaders, byte[] ciphertext,
+  EncryptMessage(Map protectedHeaders, Map unprotectedHeaders, byte[] ciphertext,
       List<Recipient> recipients) {
-    super(protectedHeaderBytes, unprotectedHeaders);
+    super(protectedHeaders, unprotectedHeaders);
     this.ciphertext = ciphertext;
     this.recipients = recipients;
   }
 
   static class Builder {
-    private byte[] protectedHeaderBytes;
+    private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
     private final List<Recipient> recipients;
@@ -52,28 +53,16 @@ public class EncryptMessage extends CoseMessage {
     }
 
     public EncryptMessage build() throws CoseException {
-      if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (ciphertext != null)
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (ciphertext != null)
           && (recipients.size() != 0)) {
-        return new EncryptMessage(protectedHeaderBytes, unprotectedHeaders, ciphertext, recipients);
+        return new EncryptMessage(protectedHeaders, unprotectedHeaders, ciphertext, recipients);
       } else {
         throw new CoseException("Some fields are missing.");
       }
     }
 
-    public Builder withProtectedHeaderBytes(byte[] protectedHeaderBytes) {
-      this.protectedHeaderBytes = protectedHeaderBytes;
-      return this;
-    }
-
-    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
-      if (protectedHeaderBytes != null) {
-        throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
-      }
-      if (protectedHeaders == null || protectedHeaders.getKeys().size() == 0) {
-        this.protectedHeaderBytes = new byte[0];
-      } else {
-        this.protectedHeaderBytes = CborUtils.encode(protectedHeaders);
-      }
+    public Builder withProtectedHeaders(Map protectedHeaders) {
+      this.protectedHeaders = protectedHeaders;
       return this;
     }
 
@@ -98,9 +87,12 @@ public class EncryptMessage extends CoseMessage {
   }
 
   @Override
-  public DataItem encode() throws CoseException {
+  public DataItem encode() throws CborException, CoseException {
     ArrayBuilder<CborBuilder> encryptArrayBuilder = new CborBuilder().addArray();
-    encryptArrayBuilder.add(getProtectedHeaderBytes()).add(getUnprotectedHeaders()).add(ciphertext);
+    encryptArrayBuilder
+        .add(CoseUtils.serializeProtectedHeaders(getProtectedHeaders()))
+        .add(getUnprotectedHeaders())
+        .add(ciphertext);
     ArrayBuilder<ArrayBuilder<CborBuilder>> recipientArrayBuilder = encryptArrayBuilder.addArray();
 
     if (recipients == null) {
@@ -132,8 +124,9 @@ public class EncryptMessage extends CoseMessage {
       recipients.add(decode);
     }
 
+    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return EncryptMessage.builder()
-        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes())
         .withRecipients(recipients)

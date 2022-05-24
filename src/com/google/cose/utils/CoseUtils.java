@@ -157,4 +157,19 @@ public class CoseUtils {
       throw new CoseException("Non EC2 key found with curve " + curve);
     }
   }
+
+  public static Map getProtectedHeadersFromBytes(byte[] protectedHeaderBytes)
+      throws CborException, CoseException {
+    if (protectedHeaderBytes.length == 0) {
+      return new Map();
+    }
+    return CborUtils.asMap(CborUtils.decode(protectedHeaderBytes));
+  }
+
+  public static byte[] serializeProtectedHeaders(Map protectedHeaders) throws CborException {
+    if (protectedHeaders == null || protectedHeaders.getKeys().size() == 0) {
+      return new byte[0];
+    }
+    return CborUtils.encode(protectedHeaders);
+  }
 }
