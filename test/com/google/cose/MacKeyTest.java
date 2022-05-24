@@ -82,4 +82,42 @@ public class MacKeyTest {
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(macKey.serialize()));
   }
+
+  @Test
+  public void testBuilderFailureScenarios() throws CborException {
+    final String kVal = "65eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d";
+    final byte[] secretKey = TestUtilities.hexStringToByteArray(kVal);
+    try {
+      MacKey.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    try {
+      MacKey.builder()
+          .withSecretKey(secretKey)
+          .withOperations(Headers.KEY_OPERATIONS_SIGN, Headers.KEY_OPERATIONS_MAC_CREATE)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    try {
+      MacKey.builder()
+          .withSecretKey(new byte[0])
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CoseException.class)
+  public void testEmptySecretByteArray() throws CborException, CoseException {
+    String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
+        + "8616D706C652040";
+    MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
 }

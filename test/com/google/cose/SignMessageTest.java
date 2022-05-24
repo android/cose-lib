@@ -132,4 +132,42 @@ public class SignMessageTest {
         .build();
     Assert.fail();
   }
+
+  @Test
+  public void testParsingNullMessage() throws CborException, CoseException {
+    String cborString = "8440A0F6818343A10126A1044231315840E2AEAFD40D69D19DFE6E52077C5D7FF4E408282"
+      + "CBEFB5D06CBF414AF2E19D982AC45AC98B8544C908B4507DE1E90B717C3D34816FE926A2B98F53AFD2FA0F30A";
+    SignMessage e = SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    Assert.assertNull(e.getMessage());
+  }
+
+  @Test
+  public void testBuilderFailures() {
+    try {
+      Encrypt0Message.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    try {
+      Encrypt0Message.builder().withProtectedHeaders(new Map()).build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CborException.class)
+  public void testByteParsingFailure() throws CborException, CoseException {
+    String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
+        + "8616D706C652040";
+    SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CoseException.class)
+  public void testDecodeFailureWithEmptySignatures() throws CborException, CoseException {
+    String cborString = "8440A0F680";
+    SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
 }

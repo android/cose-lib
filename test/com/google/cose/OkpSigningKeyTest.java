@@ -86,6 +86,17 @@ public class OkpSigningKeyTest {
 
   @Test
   public void testBuilder() throws CborException, CoseException {
+    final String cborString = "A301012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
+        + "21A68F707511A";
+    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
+    OkpSigningKey key = OkpSigningKey.builder()
+        .withXCoordinate(TestUtilities.hexStringToByteArray(xVal))
+        .build();
+    Assert.assertEquals(cborString, TestUtilities.bytesToHexString(key.serialize()));
+  }
+
+  @Test
+  public void testBuilderPrivateKey() throws CborException, CoseException {
     final String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
         + "21A68F707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
     final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
@@ -95,5 +106,78 @@ public class OkpSigningKeyTest {
         .withDParameter(TestUtilities.hexStringToByteArray(dVal))
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(key.serialize()));
+  }
+
+  @Test
+  public void testBuilderFailureScenarios() throws CborException, CoseException {
+    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
+    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    final byte[] x = TestUtilities.hexStringToByteArray(xVal);
+    final byte[] d = TestUtilities.hexStringToByteArray(dVal);
+
+    try {
+      OkpSigningKey.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    // Missing x should pass
+    try {
+      OkpSigningKey.builder()
+          .withDParameter(d)
+          .build();
+    } catch (CoseException e) {
+      Assert.fail();
+    }
+
+    // so should missing d
+    try {
+      OkpSigningKey.builder()
+          .withXCoordinate(x)
+          .build();
+    } catch (CoseException e) {
+      Assert.fail();
+    }
+
+    // Wrong operation
+    try {
+      OkpSigningKey.builder()
+          .withXCoordinate(x)
+          .withDParameter(d)
+          .withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CoseException.class)
+  public void testEc2KeyParsingInOkpSigningKey() throws CborException, CoseException {
+    String cborString = "A4010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
+        + "4B624343167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
+    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CoseException.class)
+  public void testOkpKeyParsingWithIncorrectCurve() throws CborException, CoseException {
+    String cborString = "A401012002215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
+        + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CoseException.class)
+  public void testEmptyPrivateKeyBytes() throws CborException, CoseException {
+    String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
+        + "707511A2340";
+    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CoseException.class)
+  public void testEmptyPublicKeyBytes() throws CborException, CoseException {
+    String cborString = "A40101200621402358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BA"
+        + "C031CAE7F60";
+    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
   }
 }

@@ -17,12 +17,14 @@
 package com.google.cose.structure;
 
 import co.nstant.in.cbor.CborException;
+import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.TestUtilities;
-import com.google.cose.structures.SignStructure;
-import com.google.cose.structures.SignStructure.SignatureContext;
+import com.google.cose.structure.SignStructure.SignatureContext;
+import com.google.cose.utils.CborUtils;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,7 +33,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SignStructureTest {
   @Test
-  public void testSignStructure() throws CborException {
+  public void testSignStructureSerialization() throws CborException {
     SignatureContext context = SignatureContext.SIGNATURE;
     Map protectedSignHeaders = new Map();
     protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
@@ -46,7 +48,28 @@ public class SignStructureTest {
   }
 
   @Test
-  public void testSign1Structure() throws CborException {
+  public void testSignStructureEncoding() throws CborException {
+    SignatureContext context = SignatureContext.SIGNATURE;
+    Map protectedSignHeaders = new Map();
+    protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
+    byte[] externalAad = new byte[0];
+    byte[] payload = TestUtilities.CONTENT.getBytes();
+    SignStructure structure = new SignStructure(context, new Map(), protectedSignHeaders,
+        externalAad, payload);
+    List<DataItem> cborArrayItems = CborUtils.asArray(structure.encode()).getDataItems();
+    Assert.assertEquals(5, cborArrayItems.size());
+    Assert.assertEquals(context.getContext(),
+        CborUtils.asUnicodeString(cborArrayItems.get(0)).toString());
+    Assert.assertEquals(0,
+        CborUtils.asByteString(cborArrayItems.get(1)).getBytes().length);
+    Assert.assertArrayEquals(TestUtilities.hexStringToByteArray("A10126"),
+        CborUtils.asByteString(cborArrayItems.get(2)).getBytes());
+    Assert.assertEquals(externalAad, CborUtils.asByteString(cborArrayItems.get(3)).getBytes());
+    Assert.assertEquals(payload, CborUtils.asByteString(cborArrayItems.get(4)).getBytes());
+  }
+
+  @Test
+  public void testSign1StructureSerialization() throws CborException {
     SignatureContext context = SignatureContext.SIGNATURE1;
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
@@ -55,5 +78,21 @@ public class SignStructureTest {
         "846A5369676E617475726531404054546869732069732074686520636F6E74656E742E",
         TestUtilities.bytesToHexString(s.serialize())
     );
+  }
+
+  @Test
+  public void testSign1StructureEncoding() throws CborException {
+    SignatureContext context = SignatureContext.SIGNATURE1;
+    byte[] externalAad = new byte[0];
+    byte[] payload = TestUtilities.CONTENT.getBytes();
+    SignStructure structure = new SignStructure(context, new Map(), null, externalAad, payload);
+    List<DataItem> cborArrayItems = CborUtils.asArray(structure.encode()).getDataItems();
+    Assert.assertEquals(4, cborArrayItems.size());
+    Assert.assertEquals(context.getContext(),
+        CborUtils.asUnicodeString(cborArrayItems.get(0)).toString());
+    Assert.assertEquals(0,
+        CborUtils.asByteString(cborArrayItems.get(1)).getBytes().length);
+    Assert.assertEquals(externalAad, CborUtils.asByteString(cborArrayItems.get(2)).getBytes());
+    Assert.assertEquals(payload, CborUtils.asByteString(cborArrayItems.get(3)).getBytes());
   }
 }

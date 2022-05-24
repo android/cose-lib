@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cose.structures;
+package com.google.cose.structure;
 
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
@@ -23,36 +23,32 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 
 /**
- * Encodes the Sig_Structure as mentioned in COSE RFC section 4.4
+ * Encodes the MAC_Structure as mentioned in COSE RFC section 6.3
  */
-public class SignStructure {
-  public enum SignatureContext {
-    SIGNATURE1("Signature1"),
-    SIGNATURE("Signature"),
-    COUNTER_SIGNATURE("CounterSignature");
+public class MacStructure {
+  public enum MacContext {
+    MAC0("MAC0"),
+    MAC("MAC");
 
     private final String context;
 
-    SignatureContext(String context) {
+    MacContext(String context) {
       this.context = context;
     }
 
-    String getContext() {
+    public String getContext() {
       return this.context;
     }
   }
 
-  private final SignatureContext context;
-  private final Map protectedBodyHeaders;
-  private final Map protectedSignHeaders;
+  private final MacContext context;
+  private final Map protectedHeaders;
   private final byte[] externalAad;
   private final byte[] message;
 
-  public SignStructure(SignatureContext context, Map bodyHeaders, Map signHeaders,
-      byte[] externalAad, byte[] message) {
+  public MacStructure(MacContext context, Map headers, byte[] externalAad, byte[] message) {
     this.context = context;
-    this.protectedBodyHeaders = bodyHeaders;
-    this.protectedSignHeaders = signHeaders;
+    this.protectedHeaders = headers;
     this.externalAad = externalAad;
     this.message = message;
   }
@@ -62,7 +58,6 @@ public class SignStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CoseUtils.encodeStructure(context.getContext(), protectedBodyHeaders,
-        protectedSignHeaders, externalAad, message);
+    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, message);
   }
 }

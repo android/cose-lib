@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cose.structures;
+package com.google.cose.structure;
 
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
@@ -23,35 +23,38 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 
 /**
- * Encodes the Enc_Structure as mentioned in COSE RFC section 5.3
+ * Encodes the Sig_Structure as mentioned in COSE RFC section 4.4
  */
-public class EncryptStructure {
-  public enum EncryptionContext {
-    ENCRYPT0("Encrypt0"),
-    ENCRYPT("Encrypt"),
-    ENCRYPT_RECIPIENT("Enc_Recipient"),
-    MAC_RECIPIENT("Mac_Recipient"),
-    RECIPIENT_RECIPIENT("Rec_Recipient");
+public class SignStructure {
+  public enum SignatureContext {
+    SIGNATURE1("Signature1"),
+    SIGNATURE("Signature"),
+    COUNTER_SIGNATURE("CounterSignature");
 
     private final String context;
 
-    EncryptionContext(String context) {
+    SignatureContext(String context) {
       this.context = context;
     }
 
-    String getContext() {
+    public String getContext() {
       return this.context;
     }
   }
 
-  private final EncryptionContext context;
-  private final Map protectedHeaders;
+  private final SignatureContext context;
+  private final Map protectedBodyHeaders;
+  private final Map protectedSignHeaders;
   private final byte[] externalAad;
+  private final byte[] message;
 
-  public EncryptStructure(EncryptionContext context, Map headers, byte[] externalAad) {
+  public SignStructure(SignatureContext context, Map bodyHeaders, Map signHeaders,
+      byte[] externalAad, byte[] message) {
     this.context = context;
-    this.protectedHeaders = headers;
+    this.protectedBodyHeaders = bodyHeaders;
+    this.protectedSignHeaders = signHeaders;
     this.externalAad = externalAad;
+    this.message = message;
   }
 
   public byte[] serialize() throws CborException {
@@ -59,6 +62,7 @@ public class EncryptStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, null);
+    return CoseUtils.encodeStructure(context.getContext(), protectedBodyHeaders,
+        protectedSignHeaders, externalAad, message);
   }
 }

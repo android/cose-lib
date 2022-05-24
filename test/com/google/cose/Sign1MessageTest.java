@@ -70,4 +70,36 @@ public class Sign1MessageTest {
       + "E5571843B78AC33ECB2830DF7B6E0A4D5B7376DE336B23C591C90C425317E56127FBE04370097CE347087B2"
       + "33BF722B64072BEB4486BDA4031D27244F", TestUtilities.bytesToHexString(message.serialize()));
   }
+
+  @Test
+  public void testParsingNullMessage() throws CborException, CoseException {
+    String cborString = "8440A2012604423131F6584087DB0D2E5571843B78AC33ECB2830DF7B6E0A4D5B7376DE33"
+        + "6B23C591C90C425317E56127FBE04370097CE347087B233BF722B64072BEB4486BDA4031D27244F";
+    Sign1Message e = Sign1Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    Assert.assertNull(e.getMessage());
+  }
+
+  @Test
+  public void testBuilderFailures() {
+    try {
+      Encrypt0Message.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    try {
+      Encrypt0Message.builder().withProtectedHeaders(new Map()).build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CborException.class)
+  public void testByteParsingFailure() throws CborException, CoseException {
+    String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
+        + "8616D706C652040";
+    Sign1Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
 }

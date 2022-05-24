@@ -20,7 +20,12 @@ import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
+import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
+import co.nstant.in.cbor.model.SimpleValue;
+import co.nstant.in.cbor.model.SimpleValueType;
+import co.nstant.in.cbor.model.Special;
+import co.nstant.in.cbor.model.SpecialType;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
@@ -42,7 +47,7 @@ public class Encrypt0Message extends CoseMessage {
     private Map unprotectedHeaders;
     private byte[] ciphertext;
     public Encrypt0Message build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (ciphertext != null)) {
+      if ((protectedHeaders != null) && (unprotectedHeaders != null)) {
         return new Encrypt0Message(protectedHeaders, unprotectedHeaders, ciphertext);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -89,7 +94,7 @@ public class Encrypt0Message extends CoseMessage {
     return Encrypt0Message.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-        .withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withCiphertext(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .build();
   }
 

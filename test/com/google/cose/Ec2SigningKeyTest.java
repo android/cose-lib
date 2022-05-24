@@ -109,4 +109,112 @@ public class Ec2SigningKeyTest {
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(signingKey.serialize()));
   }
+
+  @Test
+  public void testBuilderFailureScenarios() throws CborException, CoseException {
+    final String xCor = "5A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B624343167FE";
+    final String yCor = "B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
+    final String dParam = "5A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B624343167FE";
+    final byte[] x = TestUtilities.hexStringToByteArray(xCor);
+    final byte[] y = TestUtilities.hexStringToByteArray(yCor);
+    final byte[] d = TestUtilities.hexStringToByteArray(dParam);
+
+    try {
+      Ec2SigningKey.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    // Missing curve
+    try {
+      Ec2SigningKey.builder()
+          .withXCoordinate(x)
+          .withYCoordinate(y)
+          .withDParameter(d)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    // Incorrect curve
+    try {
+      Ec2SigningKey.builder()
+          .withCurve(Headers.CURVE_OKP_Ed25519)
+          .withXCoordinate(x)
+          .withYCoordinate(y)
+          .withDParameter(d)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    // Missing x
+    try {
+      Ec2SigningKey.builder()
+          .withCurve(Headers.CURVE_EC2_P256)
+          .withYCoordinate(y)
+          .withDParameter(d)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    // Missing y
+    try {
+      Ec2SigningKey.builder()
+          .withCurve(Headers.CURVE_EC2_P256)
+          .withXCoordinate(x)
+          .withDParameter(d)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    // Missing d should pass
+    Ec2SigningKey.builder()
+        .withCurve(Headers.CURVE_EC2_P256)
+        .withXCoordinate(x)
+        .withYCoordinate(y)
+        .build();
+
+    // Wrong operation
+    try {
+      Ec2SigningKey.builder()
+          .withCurve(Headers.CURVE_EC2_P256)
+          .withXCoordinate(x)
+          .withYCoordinate(y)
+          .withDParameter(d)
+          .withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN)
+          .build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CoseException.class)
+  public void testOkpKeyParsingInEc2SigningKey() throws CborException, CoseException {
+    String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
+        + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    Ec2SigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CoseException.class)
+  public void testEc2KeyParsingWithIncorrectCurve() throws CborException, CoseException {
+    String cborString = "A401022006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
+        + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+    Ec2SigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CoseException.class)
+  public void testNullDParameterBytes() throws CborException, CoseException {
+    String cborString = "A5010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B6243"
+        + "43167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC672340";
+    Ec2SigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
 }

@@ -39,7 +39,12 @@ public final class EncryptionKey extends CoseKey {
     super(cborKey);
     if (labels.containsKey(Headers.KEY_PARAMETER_K)
         && labels.get(Headers.KEY_PARAMETER_K).getMajorType() == MajorType.BYTE_STRING) {
-      secretKey = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_K)).getBytes();
+      byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_K)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Missing key material information.");
+      } else {
+        secretKey = keyMaterial;
+      }
     } else {
       throw new CoseException("Missing key material information.");
     }
@@ -105,7 +110,7 @@ public final class EncryptionKey extends CoseKey {
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
         if (operation != Headers.KEY_OPERATIONS_ENCRYPT && operation != Headers.KEY_OPERATIONS_DECRYPT)
-          throw new CoseException("Encryption key only supports Encrypt and Decrypt operations.");
+          throw new CoseException("Encryption key only supports Encrypt or Decrypt operations.");
         this.operations.add(operation);
       }
       return this;

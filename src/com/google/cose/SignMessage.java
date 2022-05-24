@@ -49,7 +49,7 @@ public class SignMessage extends CoseMessage {
     private List<Signature> signatures;
 
     public SignMessage build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (message != null)
+      if ((protectedHeaders != null) && (unprotectedHeaders != null)
           && (signatures != null && signatures.size() != 0)) {
         return new SignMessage(protectedHeaders, unprotectedHeaders, message, signatures);
       } else {
@@ -124,7 +124,7 @@ public class SignMessage extends CoseMessage {
     byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return SignMessage.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
-        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withSignatures(signatures)
         .build();

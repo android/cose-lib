@@ -45,8 +45,7 @@ public class Sign1Message extends CoseMessage {
     private byte[] message;
     private byte[] signature;
     public Sign1Message build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (message != null)
-          && (signature != null)) {
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (signature != null)) {
         return new Sign1Message(protectedHeaders, unprotectedHeaders, message, signature);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -99,7 +98,7 @@ public class Sign1Message extends CoseMessage {
     return Sign1Message.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withSignature(CborUtils.asByteString(messageArray.get(3)).getBytes())
         .build();
   }

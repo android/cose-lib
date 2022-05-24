@@ -67,4 +67,34 @@ public class Encrypt0MessageTest {
         + "DD25867374B24BEE54AA5D797C8DC845929ACAA47EF",
         TestUtilities.bytesToHexString(message.serialize()));
   }
+
+  @Test
+  public void testParsingNullCiphertext() throws CborException, CoseException {
+    String cborString = "8340A20101054C02D1F7E6F26C43D4868D87CEF6";
+    Encrypt0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test
+  public void testBuilderFailures() {
+    try {
+      Encrypt0Message.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    try {
+      Encrypt0Message.builder().withProtectedHeaders(new Map()).build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CborException.class)
+  public void testByteParsingFailure() throws CborException, CoseException {
+    String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
+        + "8616D706C652040";
+    Encrypt0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
 }

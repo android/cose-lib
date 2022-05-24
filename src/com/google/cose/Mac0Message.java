@@ -45,15 +45,14 @@ public class Mac0Message extends CoseMessage {
     private byte[] message;
     private byte[] tag;
     public Mac0Message build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (message != null)
-          && (tag != null)) {
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (tag != null)) {
         return new Mac0Message(protectedHeaders, unprotectedHeaders, message, tag);
       } else {
         throw new CoseException("Some fields are missing.");
       }
     }
 
-    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
+    public Builder withProtectedHeaders(Map protectedHeaders) {
       this.protectedHeaders = protectedHeaders;
       return this;
     }
@@ -79,7 +78,8 @@ public class Mac0Message extends CoseMessage {
     ArrayBuilder<CborBuilder> macArrayBuilder = new CborBuilder().addArray();
     macArrayBuilder
         .add(CoseUtils.serializeProtectedHeaders(getProtectedHeaders()))
-        .add(getUnprotectedHeaders()).add(message)
+        .add(getUnprotectedHeaders())
+        .add(message)
         .add(tag);
     return macArrayBuilder.end().build().get(0);
   }
@@ -98,7 +98,7 @@ public class Mac0Message extends CoseMessage {
     return Mac0Message.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())
         .build();
   }

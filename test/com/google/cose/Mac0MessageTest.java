@@ -63,4 +63,43 @@ public class Mac0MessageTest {
             + "1EE49018D244C824772F223AD4F935293F1789FC3A08D8C58",
         TestUtilities.bytesToHexString(message.serialize()));
   }
+
+  @Test
+  public void testParsingNullMessage() throws CborException, CoseException {
+    String cborString = "8443A10105A0F65820A1A848D3471F9D61EE49018D244C824772F223AD4F935293F1789FC"
+        + "3A08D8C58";
+    Mac0Message e = Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    Assert.assertNull(e.getMessage());
+  }
+
+  @Test
+  public void testBuilderFailures() {
+    try {
+      Mac0Message.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+
+    try {
+      Mac0Message.builder().withProtectedHeaders(new Map()).build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test(expected = CoseException.class)
+  public void testDecodeFailureOnMissingArrayItems() throws CborException, CoseException {
+    String cborString = "8343A10105A05820A1A848D3471F9D61EE49018D244C824772F223AD4F935293F1789FC3A"
+        + "08D8C58";
+    Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test(expected = CborException.class)
+  public void testByteParsingFailure() throws CborException, CoseException {
+    String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
+        + "8616D706C652040";
+    Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+  }
 }

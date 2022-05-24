@@ -20,6 +20,7 @@ import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
+import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
@@ -171,5 +172,15 @@ public class CoseUtils {
       return new byte[0];
     }
     return CborUtils.encode(protectedHeaders);
+  }
+
+  public static byte[] getBytesFromBstrOrNilValue(DataItem item) throws CborException, CoseException {
+    if (item.getMajorType() == MajorType.BYTE_STRING) {
+      return CborUtils.asByteString(item).getBytes();
+    } else if (CborUtils.isNull(item)) {
+      return null;
+    } else {
+      throw new CoseException("Error while decoding CBOR. Expected bstr/nil value.");
+    }
   }
 }

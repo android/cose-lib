@@ -46,15 +46,10 @@ public class EncryptMessage extends CoseMessage {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
-    private final List<Recipient> recipients;
-
-    Builder() {
-      recipients = new ArrayList<>();
-    }
+    private List<Recipient> recipients;
 
     public EncryptMessage build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (ciphertext != null)
-          && (recipients.size() != 0)) {
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (recipients.size() != 0)) {
         return new EncryptMessage(protectedHeaders, unprotectedHeaders, ciphertext, recipients);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -77,7 +72,7 @@ public class EncryptMessage extends CoseMessage {
     }
 
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients.addAll(recipients);
+      this.recipients = recipients;
       return this;
     }
 
@@ -128,7 +123,7 @@ public class EncryptMessage extends CoseMessage {
     return EncryptMessage.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-        .withCiphertext(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withCiphertext(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withRecipients(recipients)
         .build();
   }

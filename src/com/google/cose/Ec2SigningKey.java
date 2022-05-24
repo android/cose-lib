@@ -125,7 +125,7 @@ public final class Ec2SigningKey extends CoseKey {
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
         if (operation != Headers.KEY_OPERATIONS_SIGN && operation != Headers.KEY_OPERATIONS_VERIFY)
-          throw new CoseException("Signing key only supports Sign and Verify operations.");
+          throw new CoseException("Signing key only supports Sign or Verify operations.");
         this.operations.add(operation);
       }
       return this;
@@ -177,6 +177,9 @@ public final class Ec2SigningKey extends CoseKey {
     final PrivateKey privateKey;
     if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
       final ByteString key = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D));
+      if (key.getBytes().length == 0) {
+        throw new CoseException("Cannot decode private key. Missing coordinate information.");
+      }
       privateKey = CoseUtils.getEc2PrivateKeyFromCoordinate(
           curve,
           new BigInteger(SIGN_POSITIVE, key.getBytes())

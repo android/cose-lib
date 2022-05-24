@@ -56,8 +56,8 @@ public class MacMessage extends CoseMessage {
     }
 
     public MacMessage build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (message != null)
-          && (tag != null) && (recipients.size() != 0)) {
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (tag != null)
+          && (recipients.size() != 0)) {
         return new MacMessage(protectedHeaders, unprotectedHeaders, message, tag, recipients);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -137,7 +137,7 @@ public class MacMessage extends CoseMessage {
     return MacMessage.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())
         .withRecipients(recipients)
         .build();

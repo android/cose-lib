@@ -51,6 +51,9 @@ public final class OkpSigningKey extends CoseKey {
 
     privateKeyBytes = getPrivateKeyBytes();
     publicKeyBytes = getPublicKeyBytes();
+    if (privateKeyBytes == null && publicKeyBytes == null) {
+      throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
+    }
 
     if ((operations != null)
         && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
@@ -68,7 +71,7 @@ public final class OkpSigningKey extends CoseKey {
     private byte[] dParameter;
 
     public OkpSigningKey build() throws CoseException, CborException {
-      if (dParameter == null && xCor == null) {
+      if ((dParameter == null || dParameter.length == 0) && (xCor == null || xCor.length == 0)) {
         throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       }
 
@@ -119,7 +122,7 @@ public final class OkpSigningKey extends CoseKey {
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
         if (operation != Headers.KEY_OPERATIONS_SIGN && operation != Headers.KEY_OPERATIONS_VERIFY)
-          throw new CoseException("Signing key only supports Sign and Verify operations.");
+          throw new CoseException("Signing key only supports Sign or Verify operations.");
         this.operations.add(operation);
       }
       return this;
@@ -145,16 +148,24 @@ public final class OkpSigningKey extends CoseKey {
     return new Builder();
   }
 
-  private byte[] getPrivateKeyBytes() throws CborException {
+  private byte[] getPrivateKeyBytes() throws CborException, CoseException {
     if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
-      return CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
+      byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Could not decode private key. Expected key material.");
+      }
+      return keyMaterial;
     }
     return null;
   }
 
-  private byte[] getPublicKeyBytes() throws CborException {
+  private byte[] getPublicKeyBytes() throws CborException, CoseException {
     if (labels.containsKey(Headers.KEY_PARAMETER_X)) {
-      return CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X)).getBytes();
+      byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Could not decode private key. Expected key material.");
+      }
+      return keyMaterial;
     }
     return null;
   }
