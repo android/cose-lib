@@ -122,9 +122,8 @@ public class SignMessage extends CoseMessage {
       signatures.add(decodedSignature);
     }
 
-    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return SignMessage.builder()
-        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageArray.get(0)))
         .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withSignatures(signatures)

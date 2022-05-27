@@ -80,16 +80,19 @@ public class Sign1MessageTest {
   }
 
   @Test
-  public void testBuilderFailures() {
+  public void testEmptyBuilderFailure() {
     try {
-      Encrypt0Message.builder().build();
+      Sign1Message.builder().build();
       Assert.fail();
     } catch (CoseException e) {
       // pass
     }
+  }
 
+  @Test
+  public void testMissingOptionBuilderFailure() {
     try {
-      Encrypt0Message.builder().withProtectedHeaders(new Map()).build();
+      Sign1Message.builder().withProtectedHeaders(new Map()).build();
       Assert.fail();
     } catch (CoseException e) {
       // pass

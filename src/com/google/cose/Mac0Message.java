@@ -94,9 +94,8 @@ public class Mac0Message extends CoseMessage {
       throw new CoseException("Error while decoding Mac0Message. Expected 4 items,"
           + "received " + messageArray.size());
     }
-    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return Mac0Message.builder()
-        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageArray.get(0)))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())

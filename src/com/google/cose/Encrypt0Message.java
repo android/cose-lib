@@ -85,9 +85,8 @@ public class Encrypt0Message extends CoseMessage {
       throw new CoseException("Error while decoding Encrypt0Message. Expected 3 items,"
           + "received " + messageArray.size());
     }
-    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return Encrypt0Message.builder()
-        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageArray.get(0)))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withCiphertext(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .build();

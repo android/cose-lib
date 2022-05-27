@@ -137,16 +137,33 @@ public class MacMessageTest {
   }
 
   @Test
-  public void testBuilderFailures() {
+  public void testEmptyBuilderFailure() {
     try {
-      Encrypt0Message.builder().build();
+      MacMessage.builder().build();
       Assert.fail();
     } catch (CoseException e) {
       // pass
     }
+  }
 
+  @Test
+  public void testMissingOptionBuilderFailure() {
     try {
-      Encrypt0Message.builder().withProtectedHeaders(new Map()).build();
+      MacMessage.builder().withProtectedHeaders(new Map()).build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
+  }
+
+  @Test
+  public void testEmptyRecipientsBuilderFailure() {
+    try {
+      MacMessage.builder()
+          .withProtectedHeaders(new Map())
+          .withUnprotectedHeaders(new Map())
+          .withRecipients()
+          .build();
       Assert.fail();
     } catch (CoseException e) {
       // pass

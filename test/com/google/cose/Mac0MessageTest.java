@@ -73,14 +73,17 @@ public class Mac0MessageTest {
   }
 
   @Test
-  public void testBuilderFailures() {
+  public void testEmptyBuilderFailure() {
     try {
       Mac0Message.builder().build();
       Assert.fail();
     } catch (CoseException e) {
       // pass
     }
+  }
 
+  @Test
+  public void testMissingOptionBuilderFailure() {
     try {
       Mac0Message.builder().withProtectedHeaders(new Map()).build();
       Assert.fail();

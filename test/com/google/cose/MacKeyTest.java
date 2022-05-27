@@ -128,6 +128,6 @@ public class MacKeyTest {
         + "8616D706C6520582065EDA5A12577C2BAE829437FE338701A10AAA375E1BB5B5DE108DE439C08551D048501"
         + "02010902";
     MacKey key = MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
-    System.out.println(key.operations);
+    Assert.assertEquals(5, key.operations.size());
   }
 }

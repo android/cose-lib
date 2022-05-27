@@ -39,7 +39,7 @@ public abstract class CoseKey {
   protected byte[] baseIv;
   protected java.util.Map<Integer, DataItem> labels;
 
-  protected DataItem cborKey;
+  protected final DataItem cborKey;
 
   public CoseKey(DataItem cborKey) throws CborException {
     this.cborKey = cborKey;

@@ -130,9 +130,8 @@ public class MacMessage extends CoseMessage {
       Recipient decode = Recipient.decode(recipient);
       recipients.add(decode);
     }
-    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
     return MacMessage.builder()
-        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageArray.get(0)))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withTag(CborUtils.asByteString(messageArray.get(3)).getBytes())

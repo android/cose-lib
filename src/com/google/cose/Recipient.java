@@ -122,9 +122,8 @@ public class Recipient extends CoseMessage {
       throw new CoseException("Error while decoding recipient array. Expected 3 or 4 items, "
           + "recieved " + messageDataItems.size());
     }
-    byte[] protectedHeaderBytes = CborUtils.asByteString(messageDataItems.get(0)).getBytes();
     return Recipient.builder()
-        .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageDataItems.get(0)))
         .withUnprotectedHeaders(CborUtils.asMap(messageDataItems.get(1)))
         .withCiphertext(CoseUtils.getBytesFromBstrOrNilValue(messageDataItems.get(2)))
         .withRecipients(recipients)

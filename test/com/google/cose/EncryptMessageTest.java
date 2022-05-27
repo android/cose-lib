@@ -108,21 +108,27 @@ public class EncryptMessageTest {
   }
 
   @Test
-  public void testBuilderFailures() {
+  public void testEmptyBuilderFailure() {
     try {
       EncryptMessage.builder().build();
       Assert.fail();
     } catch (CoseException e) {
       // pass
     }
+  }
 
+  @Test
+  public void testMissingOptionBuilderFailure() {
     try {
       EncryptMessage.builder().withProtectedHeaders(new Map()).build();
       Assert.fail();
     } catch (CoseException e) {
       // pass
     }
+  }
 
+  @Test
+  public void testEmptyRecipientsBuilderFailure() {
     try {
       EncryptMessage.builder()
           .withProtectedHeaders(new Map())
