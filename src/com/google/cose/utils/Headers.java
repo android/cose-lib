@@ -28,7 +28,7 @@ public class Headers {
 
   public static final int KEY_TYPE_RESERVED = 0;
   public static final int KEY_TYPE_OKP = 1;
-  public static final int KEY_TYPE_ECC = 2;
+  public static final int KEY_TYPE_EC2 = 2;
   public static final int KEY_TYPE_SYMMETRIC = 4;
 
   public static final int KEY_OPERATIONS_SIGN = 1;

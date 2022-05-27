@@ -20,9 +20,30 @@ import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
+import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
+import co.nstant.in.cbor.model.NegativeInteger;
+import co.nstant.in.cbor.model.Number;
+import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.exceptions.CoseException;
+import java.math.BigInteger;
+import java.security.AlgorithmParameters;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPrivateKeySpec;
+import java.security.spec.ECPublicKeySpec;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
+import java.util.HashMap;
 
 public class CoseUtils {
+  private static final String EC_PARAMETER_SPEC = "EC";
+
   public static DataItem encodeStructure(String context, Map protectedBodyHeaders,
       Map protectedSignHeaders, byte[] externalAad, byte[] payload) throws CborException {
     ArrayBuilder<CborBuilder> arrayBuilder = new CborBuilder().addArray();
@@ -44,5 +65,127 @@ public class CoseUtils {
       arrayBuilder.add(payload);
     }
     return arrayBuilder.end().build().get(0);
+  }
+
+  public static java.util.Map<Integer, DataItem> getLabelsFromMap(Map keyMap)
+      throws CborException {
+    final java.util.Map<Integer, DataItem> labels = new HashMap<>();
+    for (DataItem item : keyMap.getKeys()) {
+      labels.put(CborUtils.asInteger(item), keyMap.get(item));
+    }
+    return labels;
+  }
+
+  /**
+   * Returns DataItem from a cbor map based on Integer value.
+   * @param cborMap map that has the information.
+   * @param value integer to be used as key in the map.
+   * @return value in the map corresponding to key
+   */
+  public static DataItem getValueFromMap(Map cborMap, int value) {
+    final Number key;
+    if (value >= 0) {
+      key = new UnsignedInteger(value);
+    } else {
+      key = new NegativeInteger(value);
+    }
+    return cborMap.get(key);
+  }
+
+  /**
+   * Generates EC2 Private Key from d parameter.
+   *
+   * Only supports P256 curve currently.
+   * @param curve supported curve
+   * @param d BigInteger representation for the private key bytes.
+   * @return PrivateKey JCA implementation
+   * @throws CoseException if unsupported key curve is used.
+   */
+  public static PrivateKey getEc2PrivateKeyFromCoordinate(int curve, BigInteger d)
+      throws CoseException {
+    try {
+      if (d == null) {
+        throw new CoseException("Cannot decode private key. Missing coordinate information.");
+      }
+      final AlgorithmParameters parameters = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
+      parameters.init(getEC2ParameterSpecFromCurve(curve));
+      final ECParameterSpec ecParameters = parameters.getParameterSpec(ECParameterSpec.class);
+      final ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(d, ecParameters);
+      return KeyFactory.getInstance(EC_PARAMETER_SPEC).generatePrivate(privateKeySpec);
+    } catch (NoSuchAlgorithmException | InvalidParameterSpecException | InvalidKeySpecException e) {
+      throw new IllegalStateException("Unexpected error", e);
+    }
+  }
+
+  /**
+   * Generates EC2 Public Key from x and y coordinate values.
+   *
+   * Only supports P256 curve currently.
+   * @param curve supported curve
+   * @param x raw bytes for x coordinate.
+   * @param y raw bytes for y coordinate.
+   * @return PublicKey JCA implementation
+   * @throws CoseException if unsupported key curve is used.
+   */
+  public static PublicKey getEc2PublicKeyFromCoordinates(int curve, BigInteger x, BigInteger y)
+      throws CoseException {
+    try {
+      if (x == null || y == null) {
+        // Should not reach here since we should be able to catch it during decoding key.
+        throw new CoseException("Cannot decode public key. Missing coordinate information.");
+      }
+      final AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
+      params.init(getEC2ParameterSpecFromCurve(curve));
+      final ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
+
+      final ECPoint ecPoint = new ECPoint(x, y);
+      final ECPublicKeySpec keySpec = new ECPublicKeySpec(ecPoint, ecParameters);
+      return KeyFactory.getInstance(EC_PARAMETER_SPEC).generatePublic(keySpec);
+    } catch (final InvalidParameterSpecException | InvalidKeySpecException
+        | NoSuchAlgorithmException ex) {
+      throw new IllegalStateException("Unexpected error", ex);
+    }
+  }
+
+  private static ECGenParameterSpec getEC2ParameterSpecFromCurve(int curve) throws CoseException {
+    if (curve == Headers.CURVE_EC2_P256) {
+      return new ECGenParameterSpec("secp256r1");
+    } else if (curve == Headers.CURVE_EC2_P384) {
+      return new ECGenParameterSpec("secp384r1");
+    } else if (curve == Headers.CURVE_EC2_P521) {
+      return new ECGenParameterSpec("secp521r1");
+    } else {
+      throw new CoseException("Non EC2 key found with curve " + curve);
+    }
+  }
+
+  public static Map asProtectedHeadersMap(DataItem serialProtectedHeaders)
+      throws CborException, CoseException {
+    if (serialProtectedHeaders.getMajorType() != MajorType.BYTE_STRING) {
+      throw new CborException("Expected type BYTE_STRING, recieved "
+          + serialProtectedHeaders.getMajorType());
+    }
+    byte[] protectedHeaderBytes = CborUtils.asByteString(serialProtectedHeaders).getBytes();
+    if (protectedHeaderBytes.length == 0) {
+      return new Map();
+    }
+    return CborUtils.asMap(CborUtils.decode(protectedHeaderBytes));
+  }
+
+  public static byte[] serializeProtectedHeaders(Map protectedHeaders) throws CborException {
+    if (protectedHeaders == null || protectedHeaders.getKeys().size() == 0) {
+      return new byte[0];
+    }
+    return CborUtils.encode(protectedHeaders);
+  }
+
+  public static byte[] getBytesFromBstrOrNilValue(DataItem item) throws CborException, CoseException {
+    if (item.getMajorType() == MajorType.BYTE_STRING) {
+      return CborUtils.asByteString(item).getBytes();
+    } else if (CborUtils.isNull(item)) {
+      return null;
+    } else {
+      throw new CoseException("Error while decoding CBOR. Expected bstr/nil value.");
+    }
   }
 }

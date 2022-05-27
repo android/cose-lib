@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.google.cose.structures;
+package com.google.cose.structure;
 
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
@@ -23,34 +23,35 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 
 /**
- * Encodes the MAC_Structure as mentioned in COSE RFC section 6.3
+ * Encodes the Enc_Structure as mentioned in COSE RFC section 5.3
  */
-public class MacStructure {
-  public enum MacContext {
-    MAC0("MAC0"),
-    MAC("MAC");
+public class EncryptStructure {
+  public enum EncryptionContext {
+    ENCRYPT0("Encrypt0"),
+    ENCRYPT("Encrypt"),
+    ENCRYPT_RECIPIENT("Enc_Recipient"),
+    MAC_RECIPIENT("Mac_Recipient"),
+    RECIPIENT_RECIPIENT("Rec_Recipient");
 
     private final String context;
 
-    MacContext(String context) {
+    EncryptionContext(String context) {
       this.context = context;
     }
 
-    String getContext() {
+    public String getContext() {
       return this.context;
     }
   }
 
-  private final MacContext context;
+  private final EncryptionContext context;
   private final Map protectedHeaders;
   private final byte[] externalAad;
-  private final byte[] message;
 
-  public MacStructure(MacContext context, Map headers, byte[] externalAad, byte[] message) {
+  public EncryptStructure(EncryptionContext context, Map headers, byte[] externalAad) {
     this.context = context;
     this.protectedHeaders = headers;
     this.externalAad = externalAad;
-    this.message = message;
   }
 
   public byte[] serialize() throws CborException {
@@ -58,6 +59,6 @@ public class MacStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, message);
+    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, null);
   }
 }

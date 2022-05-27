@@ -23,6 +23,7 @@ import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
+import com.google.cose.utils.CoseUtils;
 import java.util.List;
 
 /**
@@ -32,40 +33,27 @@ public class Sign1Message extends CoseMessage {
   private final byte[] message;
   private final byte[] signature;
 
-  Sign1Message(byte[] protectedHeaderBytes, Map unprotectedHeaders, byte[] message, byte[] sign) {
-    super(protectedHeaderBytes, unprotectedHeaders);
+  Sign1Message(Map protectedHeaders, Map unprotectedHeaders, byte[] message, byte[] sign) {
+    super(protectedHeaders, unprotectedHeaders);
     this.message = message;
     this.signature = sign;
   }
 
   static class Builder {
-    private byte[] protectedHeaderBytes;
+    private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;
     private byte[] signature;
     public Sign1Message build() throws CoseException {
-      if ((protectedHeaderBytes != null) && (unprotectedHeaders != null) && (message != null)
-          && (signature != null)) {
-        return new Sign1Message(protectedHeaderBytes, unprotectedHeaders, message, signature);
+      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (signature != null)) {
+        return new Sign1Message(protectedHeaders, unprotectedHeaders, message, signature);
       } else {
         throw new CoseException("Some fields are missing.");
       }
     }
 
-    public Builder withProtectedHeaderBytes(byte[] protectedHeaderBytes) {
-      this.protectedHeaderBytes = protectedHeaderBytes;
-      return this;
-    }
-
-    public Builder withProtectedHeaders(Map protectedHeaders) throws CoseException, CborException {
-      if (protectedHeaderBytes != null) {
-        throw new CoseException("Cannot use both withProtectedHeaderBytes and withProtectedHeaders");
-      }
-      if (protectedHeaders == null || protectedHeaders.getKeys().size() == 0) {
-        this.protectedHeaderBytes = new byte[0];
-      } else {
-        this.protectedHeaderBytes = CborUtils.encode(protectedHeaders);
-      }
+    public Builder withProtectedHeaders(Map protectedHeaders) {
+      this.protectedHeaders = protectedHeaders;
       return this;
     }
 
@@ -86,9 +74,12 @@ public class Sign1Message extends CoseMessage {
   }
 
   @Override
-  public DataItem encode() {
+  public DataItem encode() throws CborException {
     ArrayBuilder<CborBuilder> signArrayBuilder = new CborBuilder().addArray();
-    signArrayBuilder.add(getProtectedHeaderBytes()).add(getUnprotectedHeaders()).add(message)
+    signArrayBuilder
+        .add(CoseUtils.serializeProtectedHeaders(getProtectedHeaders()))
+        .add(getUnprotectedHeaders())
+        .add(message)
         .add(signature);
     return signArrayBuilder.end().build().get(0);
   }
@@ -104,9 +95,9 @@ public class Sign1Message extends CoseMessage {
           + "received " + messageArray.size());
     }
     return Sign1Message.builder()
-        .withProtectedHeaderBytes(CborUtils.asByteString(messageArray.get(0)).getBytes())
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageArray.get(0)))
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
-        .withMessage(CborUtils.asByteString(messageArray.get(2)).getBytes())
+        .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withSignature(CborUtils.asByteString(messageArray.get(3)).getBytes())
         .build();
   }
