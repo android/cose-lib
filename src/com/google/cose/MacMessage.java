@@ -21,6 +21,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import com.google.common.collect.ImmutableList;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
@@ -32,12 +33,12 @@ import java.util.List;
  * Implements COSE_Mac message structure.
  */
 public class MacMessage extends CoseMessage {
-  protected List<Recipient> recipients;
+  protected ImmutableList<Recipient> recipients;
   private final byte[] message;
   private final byte[] tag;
 
   MacMessage(Map protectedHeaders, Map unprotectedHeaders, byte[] message, byte[] tag,
-      List<Recipient> recipients) {
+      ImmutableList<Recipient> recipients) {
     super(protectedHeaders, unprotectedHeaders);
     this.message = message;
     this.tag = tag;
@@ -49,11 +50,7 @@ public class MacMessage extends CoseMessage {
     private Map unprotectedHeaders;
     private byte[] message;
     private byte[] tag;
-    private final List<Recipient> recipients;
-
-    Builder() {
-      recipients = new ArrayList<>();
-    }
+    private ImmutableList<Recipient> recipients;
 
     public MacMessage build() throws CoseException {
       if ((protectedHeaders != null) && (unprotectedHeaders != null) && (tag != null)
@@ -85,7 +82,7 @@ public class MacMessage extends CoseMessage {
     }
 
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients.addAll(recipients);
+      this.recipients = ImmutableList.copyOf(recipients);
       return this;
     }
 

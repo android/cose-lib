@@ -21,6 +21,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import com.google.common.collect.ImmutableList;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
@@ -33,10 +34,10 @@ import java.util.List;
  */
 public class EncryptMessage extends CoseMessage {
   private final byte[] ciphertext;
-  private final List<Recipient> recipients;
+  private final ImmutableList<Recipient> recipients;
 
   EncryptMessage(Map protectedHeaders, Map unprotectedHeaders, byte[] ciphertext,
-      List<Recipient> recipients) {
+      ImmutableList<Recipient> recipients) {
     super(protectedHeaders, unprotectedHeaders);
     this.ciphertext = ciphertext;
     this.recipients = recipients;
@@ -46,7 +47,7 @@ public class EncryptMessage extends CoseMessage {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
-    private List<Recipient> recipients;
+    private ImmutableList<Recipient> recipients;
 
     public EncryptMessage build() throws CoseException {
       if ((protectedHeaders != null) && (unprotectedHeaders != null) && (recipients.size() != 0)) {
@@ -72,7 +73,7 @@ public class EncryptMessage extends CoseMessage {
     }
 
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients = recipients;
+      this.recipients = ImmutableList.copyOf(recipients);
       return this;
     }
 

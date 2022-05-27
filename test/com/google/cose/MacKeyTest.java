@@ -29,7 +29,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Test class for testing {@link MacKey}
+ * Test class for testing {@link MacKey}. Key values used in test cases are referenced from
+ * https://datatracker.ietf.org/doc/html/rfc8152#appendix-C
  */
 @RunWith(JUnit4.class)
 public class MacKeyTest {
@@ -119,5 +120,14 @@ public class MacKeyTest {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
     MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
+  }
+
+  @Test
+  public void testMultiOperation() throws CborException, CoseException {
+    String cborString = "A401040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
+        + "8616D706C6520582065EDA5A12577C2BAE829437FE338701A10AAA375E1BB5B5DE108DE439C08551D048501"
+        + "02010902";
+    MacKey key = MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    System.out.println(key.operations);
   }
 }

@@ -18,7 +18,6 @@ package com.google.cose;
 
 import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;

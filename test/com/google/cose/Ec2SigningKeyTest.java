@@ -29,7 +29,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Test class for testing {@link Ec2SigningKey}
+ * Test class for testing {@link Ec2SigningKey}. Key values used in test cases are referenced from
+ * https://datatracker.ietf.org/doc/html/rfc8152#appendix-C
  */
 @RunWith(JUnit4.class)
 public class Ec2SigningKeyTest {

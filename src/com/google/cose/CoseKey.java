@@ -17,16 +17,13 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
-import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
-import co.nstant.in.cbor.model.NegativeInteger;
+import com.google.common.collect.ImmutableList;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -38,7 +35,7 @@ public abstract class CoseKey {
   protected String keyId;
   protected int keyType;
   protected Integer algorithm;
-  protected List<Integer> operations;
+  protected ImmutableList<Integer> operations;
   protected byte[] baseIv;
   protected java.util.Map<Integer, DataItem> labels;
 
@@ -78,10 +75,9 @@ public abstract class CoseKey {
     } else {
       List<Integer> operations = new ArrayList<>();
       for (DataItem dataItem : CborUtils.asArray(ops).getDataItems()) {
-        Integer asInteger = CborUtils.asInteger(dataItem);
-        operations.add(asInteger);
+        operations.add(CborUtils.asInteger(dataItem));
       }
-      this.operations = Collections.unmodifiableList(operations);
+      this.operations = ImmutableList.copyOf(operations);
     }
 
     final DataItem baseIv = CoseUtils.getValueFromMap(keyMap, Headers.KEY_PARAMETER_BASE_IV);

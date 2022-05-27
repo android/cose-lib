@@ -16,7 +16,7 @@
 
 package com.google.cose;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 /**
@@ -24,15 +24,10 @@ import java.util.List;
  * have a proper use case.
  */
 public class CoseKeySet {
-  private final List<CoseKey> coseKeys;
+  private final ImmutableList<CoseKey> coseKeys;
 
   public CoseKeySet(List<CoseKey> coseKeys) {
-    this.coseKeys = new ArrayList<>();
-    this.coseKeys.addAll(coseKeys);
-  }
-
-  public void addKeyToKeySet(final CoseKey coseKey) {
-    this.coseKeys.add(coseKey);
+    this.coseKeys = ImmutableList.copyOf(coseKeys);
   }
 
   public List<CoseKey> getKeys() {

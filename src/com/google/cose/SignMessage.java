@@ -21,6 +21,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import com.google.common.collect.ImmutableList;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
@@ -33,10 +34,10 @@ import java.util.List;
  */
 public class SignMessage extends CoseMessage {
   private final byte[] message;
-  private final List<Signature> signatures;
+  private final ImmutableList<Signature> signatures;
 
   private SignMessage(Map protectedHeaders, Map unprotectedHeaders, byte[] message,
-      List<Signature> signatures) {
+      ImmutableList<Signature> signatures) {
     super(protectedHeaders, unprotectedHeaders);
     this.message = message;
     this.signatures = signatures;
@@ -46,7 +47,7 @@ public class SignMessage extends CoseMessage {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;
-    private List<Signature> signatures;
+    private ImmutableList<Signature> signatures;
 
     public SignMessage build() throws CoseException {
       if ((protectedHeaders != null) && (unprotectedHeaders != null)
@@ -77,7 +78,7 @@ public class SignMessage extends CoseMessage {
     }
 
     public Builder withSignatures(List<Signature> signatures) {
-      this.signatures = signatures;
+      this.signatures = ImmutableList.copyOf(signatures);
       return this;
     }
   }

@@ -19,9 +19,9 @@ package com.google.cose;
 import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
-import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import com.google.common.collect.ImmutableList;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
@@ -34,10 +34,10 @@ import java.util.List;
  */
 public class Recipient extends CoseMessage {
   private final byte[] ciphertext;
-  private final List<Recipient> recipients;
+  private final ImmutableList<Recipient> recipients;
 
   private Recipient(Map protectedHeaders, Map unprotectedHeaders, byte[] ciphertext,
-      List<Recipient> recipients) {
+      ImmutableList<Recipient> recipients) {
     super(protectedHeaders, unprotectedHeaders);
     this.ciphertext = ciphertext;
     this.recipients = recipients;
@@ -47,15 +47,11 @@ public class Recipient extends CoseMessage {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
-    private final List<Recipient> recipients;
-
-    Builder() {
-      this.recipients = new ArrayList<>();
-    }
+    private ImmutableList<Recipient> recipients;
 
     public Recipient build() throws CoseException {
-      if ((protectedHeaders != null) && (unprotectedHeaders != null) && (ciphertext != null)) {
-        // recipients is an optional field and hence we are not checking that.
+      if ((protectedHeaders != null) && (unprotectedHeaders != null)) {
+        // recipients is an optional field and ciphertext can be nil, hence we are not checking them
         return new Recipient(protectedHeaders, unprotectedHeaders, ciphertext, recipients);
       } else {
         throw new CoseException("Some fields are missing.");
@@ -73,7 +69,7 @@ public class Recipient extends CoseMessage {
     }
 
     public Builder withCiphertext(byte[] ciphertext) {
-      this.ciphertext = ciphertext;
+      this.ciphertext = Arrays.copyOf(ciphertext, ciphertext.length);
       return this;
     }
 
@@ -82,7 +78,7 @@ public class Recipient extends CoseMessage {
     }
 
     public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients.addAll(recipients);
+      this.recipients = ImmutableList.copyOf(recipients);
       return this;
     }
   }
@@ -130,16 +126,16 @@ public class Recipient extends CoseMessage {
     return Recipient.builder()
         .withProtectedHeaders(CoseUtils.getProtectedHeadersFromBytes(protectedHeaderBytes))
         .withUnprotectedHeaders(CborUtils.asMap(messageDataItems.get(1)))
-        .withCiphertext(CborUtils.asByteString(messageDataItems.get(2)).getBytes())
+        .withCiphertext(CoseUtils.getBytesFromBstrOrNilValue(messageDataItems.get(2)))
         .withRecipients(recipients)
         .build();
   }
 
   public byte[] getCiphertext() {
-    return ciphertext;
+    return Arrays.copyOf(ciphertext, ciphertext.length);
   }
 
-  public List<Recipient> getRecipients() {
+  public ImmutableList<Recipient> getRecipients() {
     return recipients;
   }
 
