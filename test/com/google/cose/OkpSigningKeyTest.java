@@ -110,7 +110,7 @@ public class OkpSigningKeyTest {
   }
 
   @Test
-  public void testBuilderFailureScenarios() throws CborException, CoseException {
+  public void testBuilderFailureScenarios() throws CborException {
     final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
     final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
     final byte[] x = TestUtilities.hexStringToByteArray(xVal);

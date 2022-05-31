@@ -39,7 +39,7 @@ public class Mac0Message extends CoseMessage {
     this.tag = tag;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;

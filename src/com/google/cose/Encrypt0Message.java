@@ -37,7 +37,7 @@ public class Encrypt0Message extends CoseMessage {
     this.ciphertext = ciphertext;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;

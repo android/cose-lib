@@ -53,7 +53,7 @@ public final class Ec2SigningKey extends CoseKey {
     }
   }
 
-  static class Builder {
+  public static class Builder {
     private String keyId;
     private Algorithm algorithm;
     private final Set<Integer> operations = new LinkedHashSet<>();

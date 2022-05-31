@@ -43,7 +43,7 @@ public class SignMessage extends CoseMessage {
     this.signatures = signatures;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;

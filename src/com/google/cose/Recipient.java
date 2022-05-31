@@ -43,7 +43,7 @@ public class Recipient extends CoseMessage {
     this.recipients = recipients;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;

@@ -118,7 +118,7 @@ public class CoseUtils {
   }
 
   /**
-   * Generates EC2 Public Key from x and y coordinate values.
+   * Gets EC2 Public Key from x and y coordinate values.
    *
    * Only supports P256 curve currently.
    * @param curve supported curve

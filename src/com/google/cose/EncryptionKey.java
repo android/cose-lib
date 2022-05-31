@@ -56,7 +56,7 @@ public final class EncryptionKey extends CoseKey {
     }
   }
 
-  static class Builder {
+  public static class Builder {
     private String keyId;
     private Algorithm algorithm;
     private final Set<Integer> operations = new LinkedHashSet<>();
