@@ -29,9 +29,15 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.math.BigInteger;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.interfaces.ECPrivateKey;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -154,9 +160,39 @@ public final class Ec2SigningKey extends CoseKey {
       return this;
     }
 
-    public Builder withDParameter(byte[] dParam) {
-      this.dParameter = dParam;
-      return this;
+    public PrivateKeyRepresentationBuilder withPrivateKeyRepresentation() {
+      return new PrivateKeyRepresentationBuilder(this);
+    }
+
+    /**
+     * Helper class to get the raw bytes out of the encoded private keys.
+     */
+    public static class PrivateKeyRepresentationBuilder {
+      Builder builder;
+
+      // To prevent object instantiation from outside the class.
+      private PrivateKeyRepresentationBuilder() {}
+
+      PrivateKeyRepresentationBuilder(Builder builder) {
+        this.builder = builder;
+      }
+
+      public Builder withJceKey(PrivateKey privateKey) {
+        ECPrivateKey key = (ECPrivateKey) privateKey;
+        builder.dParameter = key.getS().toByteArray();
+        return builder;
+      }
+
+      public Builder withPkcs8Representation(byte[] keyBytes) throws CoseException {
+        ECPrivateKey key = (ECPrivateKey) CoseUtils.getEc2PrivateKeyFromEncodedKeyBytes(keyBytes);
+        builder.dParameter = key.getS().toByteArray();
+        return builder;
+      }
+
+      public Builder withRawBytes(byte[] rawBytes) {
+        builder.dParameter = rawBytes;
+        return builder;
+      }
     }
   }
 
@@ -176,14 +212,11 @@ public final class Ec2SigningKey extends CoseKey {
     // Get private key.
     final PrivateKey privateKey;
     if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
-      final ByteString key = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D));
-      if (key.getBytes().length == 0) {
+      byte[] key = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
+      if (key.length == 0) {
         throw new CoseException("Cannot decode private key. Missing coordinate information.");
       }
-      privateKey = CoseUtils.getEc2PrivateKeyFromCoordinate(
-          curve,
-          new BigInteger(SIGN_POSITIVE, key.getBytes())
-      );
+      privateKey = CoseUtils.getEc2PrivateKeyFromInteger(curve, new BigInteger(SIGN_POSITIVE, key));
     } else {
       privateKey = null;
     }
@@ -219,5 +252,60 @@ public final class Ec2SigningKey extends CoseKey {
 
   public static Ec2SigningKey decode(DataItem cborKey) throws CborException, CoseException {
     return new Ec2SigningKey(cborKey);
+  }
+
+  public byte[] sign(Algorithm algorithm, byte[] message, String provider) throws CoseException {
+    if (keyPair.getPrivate() == null) {
+      throw new CoseException("Missing key material for signing.");
+    }
+    if (algorithm != Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256) {
+      // TODO: Add support for other algorithms.
+      throw new CoseException("Unsupported algorithm.");
+    }
+
+    // JCE support for signing
+    try {
+      Signature signature;
+      if (provider == null) {
+        signature = Signature.getInstance(algorithm.getJavaAlgorithmId());
+      } else {
+        signature = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
+      }
+      signature.initSign(keyPair.getPrivate());
+      signature.update(message);
+      return signature.sign();
+    } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException
+        | NoSuchProviderException e) {
+      throw new CoseException("Error while signing message.", e);
+    }
+  }
+
+  public void verify(Algorithm algorithm, byte[] message, byte[] signature, String provider)
+      throws CoseException {
+    if (keyPair.getPublic() == null) {
+      throw new CoseException("Missing key material for verification.");
+    }
+    if (algorithm != Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256) {
+      // TODO: Add support for other algorithms.
+      throw new CoseException("Unsupported algorithm.");
+    }
+
+    try {
+      Signature signer;
+      if (provider == null) {
+        signer = Signature.getInstance(algorithm.getJavaAlgorithmId());
+      } else {
+        signer = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
+      }
+      signer.initVerify(keyPair.getPublic());
+      signer.update(message);
+      boolean x = signer.verify(signature);
+      if (!x) {
+        throw new CoseException("Failed verification.");
+      }
+    } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException
+        | SignatureException e) {
+      throw new CoseException("Error while verifying ", e);
+    }
   }
 }

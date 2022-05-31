@@ -30,6 +30,11 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /** Implements COSE_Key spec for MAC purposes. */
 public final class MacKey extends CoseKey {
@@ -137,5 +142,26 @@ public final class MacKey extends CoseKey {
 
   public static MacKey decode(DataItem cborKey) throws CborException, CoseException {
     return new MacKey(cborKey);
+  }
+
+  public byte[] doHmac(byte[] message, Algorithm algorithm) throws CoseException {
+    try {
+      Mac mac = Mac.getInstance(algorithm.getJavaAlgorithmId());
+      mac.init(new SecretKeySpec(secretKey, ""));
+      mac.update(message);
+      return mac.doFinal();
+    } catch (NoSuchAlgorithmException | InvalidKeyException ex) {
+      throw new CoseException("Error while creating mac", ex);
+    }
+  }
+
+  public byte[] createMac(byte[] message, Algorithm algorithm) throws CoseException {
+    return doHmac(message, algorithm);
+  }
+
+  public boolean verifyMac(byte[] message, Algorithm algorithm, final byte[] tag)
+      throws CoseException {
+    byte[] checkerTag = doHmac(message, algorithm);
+    return Arrays.equals(checkerTag, tag);
   }
 }

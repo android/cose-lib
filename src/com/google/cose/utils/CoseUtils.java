@@ -25,7 +25,11 @@ import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.Mac0Message;
+import com.google.cose.MacKey;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.structure.MacStructure;
+import com.google.cose.structure.MacStructure.MacContext;
 import java.math.BigInteger;
 import java.security.AlgorithmParameters;
 import java.security.KeyFactory;
@@ -39,6 +43,7 @@ import java.security.spec.ECPrivateKeySpec;
 import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.HashMap;
 
 public class CoseUtils {
@@ -92,28 +97,30 @@ public class CoseUtils {
     return cborMap.get(key);
   }
 
-  /**
-   * Generates EC2 Private Key from d parameter.
-   *
-   * Only supports P256 curve currently.
-   * @param curve supported curve
-   * @param d BigInteger representation for the private key bytes.
-   * @return PrivateKey JCA implementation
-   * @throws CoseException if unsupported key curve is used.
-   */
-  public static PrivateKey getEc2PrivateKeyFromCoordinate(int curve, BigInteger d)
+  public static PrivateKey getEc2PrivateKeyFromEncodedKeyBytes(byte[] encodedPrivateKeyBytes)
       throws CoseException {
     try {
-      if (d == null) {
-        throw new CoseException("Cannot decode private key. Missing coordinate information.");
-      }
-      final AlgorithmParameters parameters = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      parameters.init(getEC2ParameterSpecFromCurve(curve));
-      final ECParameterSpec ecParameters = parameters.getParameterSpec(ECParameterSpec.class);
-      final ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(d, ecParameters);
-      return KeyFactory.getInstance(EC_PARAMETER_SPEC).generatePrivate(privateKeySpec);
-    } catch (NoSuchAlgorithmException | InvalidParameterSpecException | InvalidKeySpecException e) {
-      throw new IllegalStateException("Unexpected error", e);
+      KeyFactory kf = KeyFactory.getInstance(EC_PARAMETER_SPEC);
+      return kf.generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKeyBytes));
+    } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
+      throw new CoseException("Error while generating key from d parameter.", e);
+    }
+  }
+
+  public static PrivateKey getEc2PrivateKeyFromInteger(int curve, BigInteger s) throws CoseException {
+    try {
+      AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
+      params.init(getEC2ParameterSpecFromCurve(curve));
+      ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
+
+      ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(s, ecParameters);
+      KeyFactory keyFactory = KeyFactory.getInstance(EC_PARAMETER_SPEC);
+      return keyFactory.generatePrivate(privateKeySpec);
+
+    } catch (NoSuchAlgorithmException
+        | InvalidParameterSpecException
+        | InvalidKeySpecException e) {
+      throw new CoseException("Error while generating key from raw bytes.", e);
     }
   }
 
@@ -187,5 +194,25 @@ public class CoseUtils {
     } else {
       throw new CoseException("Error while decoding CBOR. Expected bstr/nil value.");
     }
+  }
+
+  public Mac0Message generateCoseMac0(MacKey key, Map protectedHeaders, Map unprotectedHeaders,
+      byte[] payloadMessage, byte[] detachedContent, byte[] externalAad, Algorithm algorithm)
+      throws CborException, CoseException {
+    byte[] message;
+    if (payloadMessage != null && payloadMessage.length > 0) {
+      message = payloadMessage;
+    } else {
+      message = detachedContent;
+    }
+
+    return Mac0Message.builder()
+        .withProtectedHeaders(protectedHeaders)
+        .withMessage(payloadMessage)
+        .withTag(key.createMac(
+            new MacStructure(MacContext.MAC0, protectedHeaders, externalAad, message).serialize(),
+            algorithm))
+        .withUnprotectedHeaders(unprotectedHeaders)
+        .build();
   }
 }

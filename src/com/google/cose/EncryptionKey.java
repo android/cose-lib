@@ -28,8 +28,17 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 /** Implements COSE_Key spec for encryption purposes. */
 public final class EncryptionKey extends CoseKey {
@@ -138,5 +147,37 @@ public final class EncryptionKey extends CoseKey {
 
   public static EncryptionKey decode(DataItem cborKey) throws CborException, CoseException {
     return new EncryptionKey(cborKey);
+  }
+
+  public byte[] encrypt(Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)
+      throws CoseException {
+    try {
+      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+      GCMParameterSpec gcmSpec = new GCMParameterSpec(16 * 8, iv);
+      cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(secretKey, algorithm.getJavaAlgorithmId()),
+          gcmSpec);
+      if (aad != null) {
+        cipher.updateAAD(aad);
+      }
+      return cipher.doFinal(message);
+    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException
+        | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+      throw new CoseException("Error while encrypting message.", e);
+    }
+  }
+
+  public byte[] decrypt(Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)
+      throws CoseException {
+    try {
+      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+      GCMParameterSpec gcmSpec = new GCMParameterSpec(16 * 8, iv);
+      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(secretKey, algorithm.getJavaAlgorithmId()),
+          gcmSpec);
+      cipher.updateAAD(aad);
+      return cipher.doFinal(message);
+    } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException
+        | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+      throw new CoseException("Error while encrypting message.", e);
+    }
   }
 }

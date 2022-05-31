@@ -23,6 +23,8 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Headers;
+import java.math.BigInteger;
+import java.security.interfaces.ECPrivateKey;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,6 +42,8 @@ public class Ec2SigningKeyTest {
     final byte[] x = TestUtilities.hexStringToByteArray(xVal);
     final String yVal = "1e52ed75701163f7f9e40ddf9f341b3dc9ba860af7e0ca7ca7e9eecd0084d19c";
     final byte[] y = TestUtilities.hexStringToByteArray(yVal);
+    final String dVal = "1e52ed75701163f7f9e40ddf9f341b3dc9ba860af7e0ca7ca7e9eecd0084d19c";
+    final byte[] d = TestUtilities.hexStringToByteArray(yVal);
     final String keyId = "meriadoc.brandybuck@buckland.example";
     final Map map = new Map();
     map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
@@ -49,6 +53,7 @@ public class Ec2SigningKeyTest {
         new UnsignedInteger(Headers.CURVE_EC2_P256));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(x));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_Y), new ByteString(y));
+    map.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(d));
 
     final Ec2SigningKey key = new Ec2SigningKey(map);
     byte[] a = key.serialize();
@@ -61,12 +66,10 @@ public class Ec2SigningKeyTest {
         newKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
     Assert.assertEquals(new ByteString(x), newKey.getLabels().get(Headers.KEY_PARAMETER_X));
     Assert.assertEquals(new ByteString(y), newKey.getLabels().get(Headers.KEY_PARAMETER_Y));
+    Assert.assertEquals(new ByteString(d), newKey.getLabels().get(Headers.KEY_PARAMETER_D));
 
     byte[] b = newKey.serialize();
-    Assert.assertEquals(a.length, b.length);
-    for (int i = 0; i < a.length; i++) {
-      Assert.assertEquals(a[i], b[i]);
-    }
+    Assert.assertArrayEquals(a, b);
   }
 
   @Test
@@ -100,14 +103,31 @@ public class Ec2SigningKeyTest {
   }
 
   @Test
-  public void testBuilderPrivateKey() throws CborException, CoseException {
-    final String cborString = "A3010220012358205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
-        + "4B624343167FE";
-    final String d = "5A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B624343167FE";
+  public void testBuilderEncodedPrivateKey() throws CborException, CoseException {
+    String cborString = "A30102200123582100DE7B7261710775352BF3C0669FA54229D9B2998EE9265645A3AF9F2"
+        + "FEFC93968";
+    byte[] d = TestUtilities.hexStringToByteArray("3041020100301306072A8648CE3D020106082A8648CE3D0"
+      + "30107042730250201010420DE7B7261710775352BF3C0669FA54229D9B2998EE9265645A3AF9F2FEFC93968");
     Ec2SigningKey signingKey = Ec2SigningKey.builder()
         .withCurve(Headers.CURVE_EC2_P256)
-        .withDParameter(TestUtilities.hexStringToByteArray(d))
+        .withPrivateKeyRepresentation().withPkcs8Representation(d)
         .build();
+    Assert.assertEquals(cborString, TestUtilities.bytesToHexString(signingKey.serialize()));
+    Assert.assertArrayEquals(signingKey.keyPair.getPrivate().getEncoded(), d);
+  }
+
+  @Test
+  public void testBuilderRawPrivateKey() throws CborException, CoseException {
+    String cborString = "A3010220012358205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
+        + "4B624343167FE";
+    String dParam = "5A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B624343167FE";
+    byte[] d = TestUtilities.hexStringToByteArray(dParam);
+    Ec2SigningKey signingKey = Ec2SigningKey.builder()
+        .withCurve(Headers.CURVE_EC2_P256)
+        .withPrivateKeyRepresentation().withRawBytes(d)
+        .build();
+    ECPrivateKey key = (ECPrivateKey) signingKey.keyPair.getPrivate();
+    Assert.assertEquals(key.getS(), new BigInteger(dParam, 16));
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(signingKey.serialize()));
   }
 
@@ -132,7 +152,7 @@ public class Ec2SigningKeyTest {
       Ec2SigningKey.builder()
           .withXCoordinate(x)
           .withYCoordinate(y)
-          .withDParameter(d)
+          .withPrivateKeyRepresentation().withRawBytes(d)
           .build();
       Assert.fail();
     } catch (CoseException e) {
@@ -145,7 +165,7 @@ public class Ec2SigningKeyTest {
           .withCurve(Headers.CURVE_OKP_Ed25519)
           .withXCoordinate(x)
           .withYCoordinate(y)
-          .withDParameter(d)
+          .withPrivateKeyRepresentation().withRawBytes(d)
           .build();
       Assert.fail();
     } catch (CoseException e) {
@@ -157,7 +177,7 @@ public class Ec2SigningKeyTest {
       Ec2SigningKey.builder()
           .withCurve(Headers.CURVE_EC2_P256)
           .withYCoordinate(y)
-          .withDParameter(d)
+          .withPrivateKeyRepresentation().withRawBytes(d)
           .build();
       Assert.fail();
     } catch (CoseException e) {
@@ -169,7 +189,7 @@ public class Ec2SigningKeyTest {
       Ec2SigningKey.builder()
           .withCurve(Headers.CURVE_EC2_P256)
           .withXCoordinate(x)
-          .withDParameter(d)
+          .withPrivateKeyRepresentation().withRawBytes(d)
           .build();
       Assert.fail();
     } catch (CoseException e) {
@@ -189,7 +209,7 @@ public class Ec2SigningKeyTest {
           .withCurve(Headers.CURVE_EC2_P256)
           .withXCoordinate(x)
           .withYCoordinate(y)
-          .withDParameter(d)
+          .withPrivateKeyRepresentation().withRawBytes(d)
           .withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN)
           .build();
       Assert.fail();

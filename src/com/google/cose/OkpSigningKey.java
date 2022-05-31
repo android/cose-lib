@@ -27,6 +27,9 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import com.google.crypto.tink.subtle.Ed25519Sign;
+import com.google.crypto.tink.subtle.Ed25519Verify;
+import java.security.GeneralSecurityException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -177,5 +180,43 @@ public final class OkpSigningKey extends CoseKey {
 
   public static OkpSigningKey decode(DataItem cborKey) throws CborException, CoseException {
     return new OkpSigningKey(cborKey);
+  }
+
+  public byte[] sign(Algorithm algorithm, byte[] message) throws CoseException {
+    if (privateKeyBytes == null) {
+      throw new CoseException("Missing key material for signing.");
+    }
+    if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
+      throw new CoseException("Incompatible key type.");
+    }
+    return tinkSign(message);
+  }
+
+  private byte[] tinkSign(byte[] message) throws CoseException {
+    try {
+      Ed25519Sign signer = new Ed25519Sign(privateKeyBytes);
+      return signer.sign(message);
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Error while signing message.", e);
+    }
+  }
+
+  public void verify(Algorithm algorithm, byte[] message, byte[] signature) throws CoseException {
+    if (publicKeyBytes == null) {
+      throw new CoseException("Missing key material for verification.");
+    }
+    if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
+      throw new CoseException("Incompatible key type");
+    }
+    tinkVerify(signature, message);
+  }
+
+  private void tinkVerify(byte[] signature, byte[] message) throws CoseException {
+    try {
+      Ed25519Verify verifier = new Ed25519Verify(publicKeyBytes);
+      verifier.verify(signature, message);
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Error while verifying message.", e);
+    }
   }
 }
