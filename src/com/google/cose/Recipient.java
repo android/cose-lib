@@ -100,11 +100,11 @@ public class Recipient extends CoseMessage {
     return arrayBuilder.end().build().get(0);
   }
 
-  public static Recipient deserialize(byte[] rawBytes) throws CoseException, CborException {
+  public static Recipient deserialize(byte[] rawBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(rawBytes));
   }
 
-  public static Recipient decode(DataItem cborMessage) throws CoseException, CborException {
+  public static Recipient decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageDataItems = CborUtils.asArray(cborMessage).getDataItems();
     List<Recipient> recipients = new ArrayList<>();
     if (messageDataItems.size() == 4) {

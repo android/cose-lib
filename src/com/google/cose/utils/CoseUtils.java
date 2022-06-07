@@ -25,17 +25,30 @@ import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.cose.CoseKey;
+import com.google.cose.Ec2SigningKey;
+import com.google.cose.Encrypt0Message;
+import com.google.cose.EncryptionKey;
 import com.google.cose.Mac0Message;
 import com.google.cose.MacKey;
+import com.google.cose.OkpSigningKey;
+import com.google.cose.Sign1Message;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.structure.EncryptStructure;
+import com.google.cose.structure.EncryptStructure.EncryptionContext;
 import com.google.cose.structure.MacStructure;
 import com.google.cose.structure.MacStructure.MacContext;
+import com.google.cose.structure.SignStructure;
+import com.google.cose.structure.SignStructure.SignatureContext;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.security.AlgorithmParameters;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.interfaces.ECPrivateKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
@@ -44,7 +57,15 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Arrays;
 import java.util.HashMap;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1InputStream;
+import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Primitive;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.DERSequenceGenerator;
+import org.bouncycastle.jce.ECNamedCurveTable;
 
 public class CoseUtils {
   private static final String EC_PARAMETER_SPEC = "EC";
@@ -53,17 +74,9 @@ public class CoseUtils {
       Map protectedSignHeaders, byte[] externalAad, byte[] payload) throws CborException {
     ArrayBuilder<CborBuilder> arrayBuilder = new CborBuilder().addArray();
     arrayBuilder.add(context);
-    if (protectedBodyHeaders.getKeys().size() == 0) {
-      arrayBuilder.add(new byte[0]);
-    } else {
-      arrayBuilder.add(CborUtils.encode(protectedBodyHeaders));
-    }
+    arrayBuilder.add(serializeProtectedHeaders(protectedBodyHeaders));
     if (protectedSignHeaders != null) {
-      if (protectedSignHeaders.getKeys().size() == 0) {
-        arrayBuilder.add(new byte[0]);
-      } else {
-        arrayBuilder.add(CborUtils.encode(protectedSignHeaders));
-      }
+      arrayBuilder.add(serializeProtectedHeaders(protectedSignHeaders));
     }
     arrayBuilder.add(externalAad);
     if (payload != null) {
@@ -97,26 +110,25 @@ public class CoseUtils {
     return cborMap.get(key);
   }
 
-  public static PrivateKey getEc2PrivateKeyFromEncodedKeyBytes(byte[] encodedPrivateKeyBytes)
+  public static ECPrivateKey getEc2PrivateKeyFromEncodedKeyBytes(byte[] encodedPrivateKeyBytes)
       throws CoseException {
     try {
       KeyFactory kf = KeyFactory.getInstance(EC_PARAMETER_SPEC);
-      return kf.generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKeyBytes));
+      return (ECPrivateKey) kf.generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKeyBytes));
     } catch (InvalidKeySpecException | NoSuchAlgorithmException e) {
       throw new CoseException("Error while generating key from d parameter.", e);
     }
   }
 
-  public static PrivateKey getEc2PrivateKeyFromInteger(int curve, BigInteger s) throws CoseException {
+  public static ECPrivateKey getEc2PrivateKeyFromInteger(int curve, BigInteger s)
+      throws CoseException {
     try {
       AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      params.init(getEC2ParameterSpecFromCurve(curve));
+      params.init(new ECGenParameterSpec(getEc2CoseCurveName(curve)));
       ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
 
-      ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(s, ecParameters);
       KeyFactory keyFactory = KeyFactory.getInstance(EC_PARAMETER_SPEC);
-      return keyFactory.generatePrivate(privateKeySpec);
-
+      return (ECPrivateKey) keyFactory.generatePrivate(new ECPrivateKeySpec(s, ecParameters));
     } catch (NoSuchAlgorithmException
         | InvalidParameterSpecException
         | InvalidKeySpecException e) {
@@ -137,12 +149,8 @@ public class CoseUtils {
   public static PublicKey getEc2PublicKeyFromCoordinates(int curve, BigInteger x, BigInteger y)
       throws CoseException {
     try {
-      if (x == null || y == null) {
-        // Should not reach here since we should be able to catch it during decoding key.
-        throw new CoseException("Cannot decode public key. Missing coordinate information.");
-      }
       final AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      params.init(getEC2ParameterSpecFromCurve(curve));
+      params.init(new ECGenParameterSpec(getEc2CoseCurveName(curve)));
       final ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
 
       final ECPoint ecPoint = new ECPoint(x, y);
@@ -154,15 +162,16 @@ public class CoseUtils {
     }
   }
 
-  private static ECGenParameterSpec getEC2ParameterSpecFromCurve(int curve) throws CoseException {
-    if (curve == Headers.CURVE_EC2_P256) {
-      return new ECGenParameterSpec("secp256r1");
-    } else if (curve == Headers.CURVE_EC2_P384) {
-      return new ECGenParameterSpec("secp384r1");
-    } else if (curve == Headers.CURVE_EC2_P521) {
-      return new ECGenParameterSpec("secp521r1");
-    } else {
-      throw new CoseException("Non EC2 key found with curve " + curve);
+  private static String getEc2CoseCurveName(int coseCurveId) throws CoseException {
+    switch (coseCurveId) {
+      case Headers.CURVE_EC2_P256:
+        return "secp256r1";
+      case Headers.CURVE_EC2_P384:
+        return "secp384r1";
+      case Headers.CURVE_EC2_P521:
+        return "secp521r1";
+      default:
+        throw new CoseException("Unsupported Curve.");
     }
   }
 
@@ -180,7 +189,7 @@ public class CoseUtils {
   }
 
   public static byte[] serializeProtectedHeaders(Map protectedHeaders) throws CborException {
-    if (protectedHeaders == null || protectedHeaders.getKeys().size() == 0) {
+    if (protectedHeaders.getKeys().size() == 0) {
       return new byte[0];
     }
     return CborUtils.encode(protectedHeaders);
@@ -196,23 +205,211 @@ public class CoseUtils {
     }
   }
 
+  public static PublicKey getEc2PublicKeyFromPrivateKey(int curve, ECPrivateKey privateKey)
+      throws CoseException {
+    org.bouncycastle.jce.spec.ECParameterSpec ecParameterSpec =
+        ECNamedCurveTable.getParameterSpec(getEc2CoseCurveName(curve));
+    org.bouncycastle.math.ec.ECPoint Q = ecParameterSpec.getG().multiply(privateKey.getS());
+    Q = Q.normalize();
+    return getEc2PublicKeyFromCoordinates(
+        curve,
+        Q.getAffineXCoord().toBigInteger(),
+        Q.getAffineYCoord().toBigInteger());
+  }
+
   public Mac0Message generateCoseMac0(MacKey key, Map protectedHeaders, Map unprotectedHeaders,
-      byte[] payloadMessage, byte[] detachedContent, byte[] externalAad, Algorithm algorithm)
+      byte[] payloadMessage, byte[] detachedContent, Algorithm algorithm)
       throws CborException, CoseException {
-    byte[] message;
-    if (payloadMessage != null && payloadMessage.length > 0) {
-      message = payloadMessage;
-    } else {
-      message = detachedContent;
-    }
+    byte[] message = getMessageFromDetachedOrPayload(payloadMessage, detachedContent);
 
     return Mac0Message.builder()
         .withProtectedHeaders(protectedHeaders)
         .withMessage(payloadMessage)
         .withTag(key.createMac(
-            new MacStructure(MacContext.MAC0, protectedHeaders, externalAad, message).serialize(),
+            new MacStructure(MacContext.MAC0, protectedHeaders, new byte[0], message).serialize(),
             algorithm))
         .withUnprotectedHeaders(unprotectedHeaders)
         .build();
+  }
+
+  public void verifyCoseMac0(MacKey key, Mac0Message message, byte[] detachedContent,
+      Algorithm algorithm) throws CborException, CoseException {
+    byte[] macedMessage = getMessageFromDetachedOrPayload(message.getMessage(), detachedContent);
+    byte[] toBeMaced = new MacStructure(MacContext.MAC0, message.getProtectedHeaders(), new byte[0],
+        macedMessage).serialize();
+    key.verifyMac(toBeMaced, algorithm, message.getTag());
+  }
+
+  public static Encrypt0Message generateCoseEncrypt0(EncryptionKey key, Map protectedHeaders,
+      Map unprotectedHeaders, byte[] message, byte[] externalAad, byte[] iv, Algorithm algorithm)
+      throws CborException, CoseException {
+    return Encrypt0Message.builder()
+        .withProtectedHeaders(protectedHeaders)
+        .withUnprotectedHeaders(unprotectedHeaders)
+        .withCiphertext(
+            key.encrypt(algorithm, message, iv, new EncryptStructure(
+                EncryptionContext.ENCRYPT0, protectedHeaders, externalAad).serialize())
+        ).build();
+  }
+
+  public static Sign1Message generateCoseSign1(CoseKey key, Map protectedHeaders,
+      Map unprotectedHeaders, byte[] payloadMessage, byte[] detachedContent, Algorithm algorithm)
+      throws CborException, CoseException {
+    if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
+      throw new CoseException("Incompatible key used.");
+    }
+    byte[] message = getMessageFromDetachedOrPayload(payloadMessage, detachedContent);
+
+    byte[] toBeSigned = new SignStructure(
+        SignatureContext.SIGNATURE1, protectedHeaders, null, new byte[0], message
+    ).serialize();
+
+    byte[] signature;
+    if (key instanceof OkpSigningKey) {
+      signature = ((OkpSigningKey) key).sign(algorithm, toBeSigned);
+    } else {
+      signature = signatureDerToCose(
+          ((Ec2SigningKey) key).sign(algorithm, toBeSigned, null),
+          algorithm);
+    }
+
+    return Sign1Message.builder()
+        .withProtectedHeaders(protectedHeaders)
+        .withUnprotectedHeaders(unprotectedHeaders)
+        .withMessage(message)
+        .withSignature(signature)
+        .build();
+  }
+
+  public static void verifyCoseSign1Message(CoseKey key, Sign1Message message,
+      byte[] detachedContent, Algorithm algorithm) throws CborException, CoseException {
+    if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
+      throw new CoseException("Incompatible key used.");
+    }
+    Map protectedHeaders = message.getProtectedHeaders();
+    byte[] signedMessage = getMessageFromDetachedOrPayload(message.getMessage(), detachedContent);
+
+    byte[] encodedStructure = new SignStructure(
+        SignatureContext.SIGNATURE1, protectedHeaders, null, new byte[0], signedMessage
+    ).serialize();
+    if (key instanceof Ec2SigningKey) {
+      byte[] signature = signatureCoseToDer(message.getSignature());
+      ((Ec2SigningKey) key).verify(algorithm, encodedStructure, signature, null);
+    } else {
+      ((OkpSigningKey) key).verify(algorithm, encodedStructure, message.getSignature());
+    }
+  }
+
+  private static byte[] signatureCoseToDer(byte[] signature) {
+    // r and s are always positive and may use all bits so use the constructor which
+    // parses them as unsigned.
+    BigInteger r = new BigInteger(1, Arrays.copyOfRange(
+        signature, 0, signature.length / 2));
+    BigInteger s = new BigInteger(1, Arrays.copyOfRange(
+        signature, signature.length / 2, signature.length));
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try {
+      DERSequenceGenerator seq = new DERSequenceGenerator(baos);
+      seq.addObject(new ASN1Integer(r.toByteArray()));
+      seq.addObject(new ASN1Integer(s.toByteArray()));
+      seq.close();
+    } catch (IOException e) {
+      throw new IllegalStateException("Error generating DER signature", e);
+    }
+    return baos.toByteArray();
+  }
+
+  /*
+   * From RFC 8152 section 8.1 ECDSA:
+   *
+   * The signature algorithm results in a pair of integers (R, S).  These
+   * integers will be the same length as the length of the key used for
+   * the signature process.  The signature is encoded by converting the
+   * integers into byte strings of the same length as the key size.  The
+   * length is rounded up to the nearest byte and is left padded with zero
+   * bits to get to the correct length.  The two integers are then
+   * concatenated together to form a byte string that is the resulting
+   * signature.
+   */
+  private static byte[] signatureDerToCose(byte[] signature, Algorithm algorithm)
+      throws CoseException {
+    ASN1Primitive asn1;
+    try {
+      asn1 = new ASN1InputStream(new ByteArrayInputStream(signature)).readObject();
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Error decoding DER signature", e);
+    }
+    if (!(asn1 instanceof ASN1Sequence)) {
+      throw new IllegalArgumentException("Not a ASN1 sequence");
+    }
+    ASN1Encodable[] asn1Encodables = ((ASN1Sequence) asn1).toArray();
+    if (asn1Encodables.length != 2) {
+      throw new IllegalArgumentException("Expected two items in sequence");
+    }
+    if (!(asn1Encodables[0].toASN1Primitive() instanceof ASN1Integer)) {
+      throw new IllegalArgumentException("First item is not an integer");
+    }
+    BigInteger r = ((ASN1Integer) asn1Encodables[0].toASN1Primitive()).getValue();
+    if (!(asn1Encodables[1].toASN1Primitive() instanceof ASN1Integer)) {
+      throw new IllegalArgumentException("Second item is not an integer");
+    }
+    BigInteger s = ((ASN1Integer) asn1Encodables[1].toASN1Primitive()).getValue();
+
+    byte[] rBytes = stripLeadingZeroes(r.toByteArray());
+    byte[] sBytes = stripLeadingZeroes(s.toByteArray());
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    int keySize = getKeySizeFromAlgorithm(algorithm);
+    try {
+      for (int n = 0; n < keySize - rBytes.length; n++) {
+        baos.write(0x00);
+      }
+      baos.write(rBytes);
+      for (int n = 0; n < keySize - sBytes.length; n++) {
+        baos.write(0x00);
+      }
+      baos.write(sBytes);
+    } catch (IOException e) {
+      throw new CoseException("Error while converting signature to cose spec.");
+    }
+    return baos.toByteArray();
+  }
+
+  private static int getKeySizeFromAlgorithm(Algorithm algorithm) {
+    switch (algorithm) {
+      case SIGNING_ALGORITHM_ECDSA_SHA_256:
+        return 32;
+      case SIGNING_ALGORITHM_ECDSA_SHA_384:
+        return 48;
+      case SIGNING_ALGORITHM_ECDSA_SHA_512:
+        return 64;
+      default:
+        throw new IllegalArgumentException("Unsupported algorithm " + algorithm);
+    }
+  }
+
+  private static byte[] stripLeadingZeroes(byte[] value) {
+    for (int i = 0; i < value.length; i++) {
+      if (value[i] != 0x00) {
+        return Arrays.copyOfRange(value, i, value.length);
+      }
+    }
+    return new byte[0];
+  }
+
+  private static byte[] getMessageFromDetachedOrPayload(byte[] payloadMessage,
+      byte[] detachedContent) throws CoseException {
+    int payloadLen = payloadMessage.length;
+    int contentLen = detachedContent.length;
+    if (payloadLen > 0 && contentLen > 0) {
+      throw new CoseException("Both detached content and payload cannot be non-empty.");
+    }
+    if (payloadMessage.length > 0) {
+      return payloadMessage;
+    } else if (detachedContent.length > 0) {
+      return detachedContent;
+    } else {
+      throw new CoseException("Need message bytes to generate signature.");
+    }
   }
 }

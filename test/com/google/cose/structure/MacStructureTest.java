@@ -57,14 +57,13 @@ public class MacStructureTest {
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
     MacStructure structure = new MacStructure(context, headers, externalAad, payload);
-    List<DataItem> cborArrayItems = CborUtils.asArray(structure.encode()).getDataItems();
+    List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(4, cborArrayItems.size());
-    Assert.assertEquals(context.getContext(),
-        CborUtils.asUnicodeString(cborArrayItems.get(0)).toString());
+    Assert.assertEquals(context.getContext(), CborUtils.getString(cborArrayItems.get(0)));
     Assert.assertArrayEquals(TestUtilities.hexStringToByteArray("A10105"),
-        CborUtils.asByteString(cborArrayItems.get(1)).getBytes());
-    Assert.assertEquals(externalAad, CborUtils.asByteString(cborArrayItems.get(2)).getBytes());
-    Assert.assertEquals(payload, CborUtils.asByteString(cborArrayItems.get(3)).getBytes());
+        CborUtils.getBytes(cborArrayItems.get(1)));
+    Assert.assertEquals(externalAad, CborUtils.getBytes(cborArrayItems.get(2)));
+    Assert.assertEquals(payload, CborUtils.getBytes(cborArrayItems.get(3)));
   }
 
   @Test
@@ -91,13 +90,12 @@ public class MacStructureTest {
     byte[] externalAad = new byte[0];
     byte[] payload = TestUtilities.CONTENT.getBytes();
     MacStructure structure = new MacStructure(context, headers, externalAad, payload);
-    List<DataItem> cborArrayItems = CborUtils.asArray(structure.encode()).getDataItems();
+    List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(4, cborArrayItems.size());
-    Assert.assertEquals(context.getContext(),
-        CborUtils.asUnicodeString(cborArrayItems.get(0)).toString());
+    Assert.assertEquals(context.getContext(), CborUtils.getString(cborArrayItems.get(0)));
     Assert.assertArrayEquals(TestUtilities.hexStringToByteArray("A10105"),
-        CborUtils.asByteString(cborArrayItems.get(1)).getBytes());
-    Assert.assertEquals(externalAad, CborUtils.asByteString(cborArrayItems.get(2)).getBytes());
-    Assert.assertEquals(payload, CborUtils.asByteString(cborArrayItems.get(3)).getBytes());
+        CborUtils.getBytes(cborArrayItems.get(1)));
+    Assert.assertEquals(externalAad, CborUtils.getBytes(cborArrayItems.get(2)));
+    Assert.assertEquals(payload, CborUtils.getBytes(cborArrayItems.get(3)));
   }
 }

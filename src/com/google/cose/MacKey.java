@@ -28,11 +28,11 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -68,7 +68,7 @@ public final class MacKey extends CoseKey {
     private byte[] baseIv;
     private byte[] secretKey;
 
-    public MacKey build() throws CoseException, CborException {
+    public MacKey build() throws CborException, CoseException {
       if (secretKey == null) {
         throw new CoseException("Missing key material information.");
       }
@@ -144,7 +144,7 @@ public final class MacKey extends CoseKey {
     return new MacKey(cborKey);
   }
 
-  public byte[] doHmac(byte[] message, Algorithm algorithm) throws CoseException {
+  public byte[] createMac(byte[] message, Algorithm algorithm) throws CoseException {
     try {
       Mac mac = Mac.getInstance(algorithm.getJavaAlgorithmId());
       mac.init(new SecretKeySpec(secretKey, ""));
@@ -155,13 +155,10 @@ public final class MacKey extends CoseKey {
     }
   }
 
-  public byte[] createMac(byte[] message, Algorithm algorithm) throws CoseException {
-    return doHmac(message, algorithm);
-  }
-
-  public boolean verifyMac(byte[] message, Algorithm algorithm, final byte[] tag)
+  public void verifyMac(byte[] message, Algorithm algorithm, final byte[] tag)
       throws CoseException {
-    byte[] checkerTag = doHmac(message, algorithm);
-    return Arrays.equals(checkerTag, tag);
+    if (!Arrays.equals(createMac(message, algorithm), tag)) {
+      throw new CoseException("Failed mac verification");
+    }
   }
 }

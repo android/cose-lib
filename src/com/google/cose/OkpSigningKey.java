@@ -28,6 +28,7 @@ import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
 import com.google.crypto.tink.subtle.Ed25519Sign;
+import com.google.crypto.tink.subtle.Ed25519Sign.KeyPair;
 import com.google.crypto.tink.subtle.Ed25519Verify;
 import java.security.GeneralSecurityException;
 import java.util.LinkedHashSet;
@@ -38,10 +39,10 @@ import java.util.Set;
  * Currently only supports Ed25519 curve.
  */
 public final class OkpSigningKey extends CoseKey {
-  byte[] privateKeyBytes;
-  byte[] publicKeyBytes;
+  private final byte[] privateKeyBytes;
+  private final byte[] publicKeyBytes;
 
-  public OkpSigningKey(DataItem cborKey) throws CoseException, CborException {
+  public OkpSigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
     if (keyType != Headers.KEY_TYPE_OKP) {
@@ -54,9 +55,6 @@ public final class OkpSigningKey extends CoseKey {
 
     privateKeyBytes = getPrivateKeyBytes();
     publicKeyBytes = getPublicKeyBytes();
-    if (privateKeyBytes == null && publicKeyBytes == null) {
-      throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
-    }
 
     if ((operations != null)
         && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
@@ -73,7 +71,7 @@ public final class OkpSigningKey extends CoseKey {
     private byte[] xCor;
     private byte[] dParameter;
 
-    public OkpSigningKey build() throws CoseException, CborException {
+    public OkpSigningKey build() throws CborException, CoseException {
       if ((dParameter == null || dParameter.length == 0) && (xCor == null || xCor.length == 0)) {
         throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       }
@@ -166,11 +164,18 @@ public final class OkpSigningKey extends CoseKey {
     if (labels.containsKey(Headers.KEY_PARAMETER_X)) {
       byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X)).getBytes();
       if (keyMaterial.length == 0) {
-        throw new CoseException("Could not decode private key. Expected key material.");
+        throw new CoseException("Could not decode public key. Expected key material.");
       }
       return keyMaterial;
     }
-    return null;
+    if (privateKeyBytes == null) {
+      throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
+    }
+    try {
+      return KeyPair.newKeyPairFromSeed(privateKeyBytes).getPublicKey();
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Error while generating public key from private key bytes.", e);
+    }
   }
 
   public static OkpSigningKey parse(byte[] keyBytes) throws CborException, CoseException {
@@ -202,11 +207,8 @@ public final class OkpSigningKey extends CoseKey {
   }
 
   public void verify(Algorithm algorithm, byte[] message, byte[] signature) throws CoseException {
-    if (publicKeyBytes == null) {
-      throw new CoseException("Missing key material for verification.");
-    }
     if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
-      throw new CoseException("Incompatible key type");
+      throw new CoseException("Incompatible key type.");
     }
     tinkVerify(signature, message);
   }

@@ -51,9 +51,14 @@ public class OkpSigningKeyTest {
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(d));
 
     final OkpSigningKey key = new OkpSigningKey(map);
-    byte[] a = key.serialize();
+    OkpSigningKey key1 = OkpSigningKey.builder()
+        .withDParameter(d)
+        .withXCoordinate(x)
+        .withKeyId(keyId)
+        .build();
+    Assert.assertArrayEquals(key.serialize(), key1.serialize());
 
-    final OkpSigningKey newKey = OkpSigningKey.parse(a);
+    final OkpSigningKey newKey = OkpSigningKey.parse(key.serialize());
 
     Assert.assertEquals(Headers.KEY_TYPE_OKP, newKey.getKeyType());
     Assert.assertEquals(keyId, newKey.getKeyId());
@@ -62,11 +67,7 @@ public class OkpSigningKeyTest {
     Assert.assertEquals(new ByteString(x), newKey.getLabels().get(Headers.KEY_PARAMETER_X));
     Assert.assertEquals(new ByteString(d), newKey.getLabels().get(Headers.KEY_PARAMETER_D));
 
-    byte[] b = newKey.serialize();
-    Assert.assertEquals(a.length, b.length);
-    for (int i = 0; i < a.length; i++) {
-      Assert.assertEquals(a[i], b[i]);
-    }
+    Assert.assertArrayEquals(key.serialize(), newKey.serialize());
   }
 
   @Test

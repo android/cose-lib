@@ -84,7 +84,7 @@ public class SignMessage extends CoseMessage {
   }
 
   @Override
-  public DataItem encode() throws CoseException, CborException {
+  public DataItem encode() throws CborException, CoseException {
     if (signatures == null || signatures.size() == 0) {
       throw new CoseException("Error while serializing SignMessage. Signatures not found.");
     }
@@ -105,11 +105,11 @@ public class SignMessage extends CoseMessage {
     return messageBuilder.end().build().get(0);
   }
 
-  public static SignMessage deserialize(byte[] messageBytes) throws CoseException, CborException {
+  public static SignMessage deserialize(byte[] messageBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static SignMessage decode(DataItem cborMessage) throws CoseException, CborException {
+  public static SignMessage decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 4) {
       throw new CoseException("Error while decoding SignMessage. Expected 4 items,"

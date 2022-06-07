@@ -33,7 +33,6 @@ import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
@@ -47,7 +46,7 @@ public final class Ec2SigningKey extends CoseKey {
 
   KeyPair keyPair;
 
-  public Ec2SigningKey(DataItem cborKey) throws CoseException, CborException {
+  public Ec2SigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
     keyPair = getKeyPairFromCbor();
@@ -69,7 +68,7 @@ public final class Ec2SigningKey extends CoseKey {
     private byte[] yCor;
     private byte[] dParameter;
 
-    public Ec2SigningKey build() throws CoseException, CborException {
+    public Ec2SigningKey build() throws CborException, CoseException {
       if (curve == null) {
         throw new CoseException("Need curve information.");
       }
@@ -177,19 +176,24 @@ public final class Ec2SigningKey extends CoseKey {
         this.builder = builder;
       }
 
-      public Builder withJceKey(PrivateKey privateKey) {
-        ECPrivateKey key = (ECPrivateKey) privateKey;
+      public Builder withPrivateKey(ECPrivateKey privateKey) {
+        builder.dParameter = privateKey.getS().toByteArray();
+        return builder;
+      }
+
+      public Builder withPkcs8EncodedBytes(byte[] keyBytes) throws CoseException {
+        ECPrivateKey key = CoseUtils.getEc2PrivateKeyFromEncodedKeyBytes(keyBytes);
         builder.dParameter = key.getS().toByteArray();
         return builder;
       }
 
-      public Builder withPkcs8Representation(byte[] keyBytes) throws CoseException {
-        ECPrivateKey key = (ECPrivateKey) CoseUtils.getEc2PrivateKeyFromEncodedKeyBytes(keyBytes);
-        builder.dParameter = key.getS().toByteArray();
-        return builder;
-      }
-
-      public Builder withRawBytes(byte[] rawBytes) {
+      /**
+       * This function expects the BigInteger byte array of the private key. This is typically the
+       * multiplier in the EC2 private key which can generate EC2 public key from generator point.
+       * @param rawBytes byte array representation of BigInteger
+       * @return {@link Ec2SigningKey.Builder}
+       */
+      public Builder withDParameter(byte[] rawBytes) {
         builder.dParameter = rawBytes;
         return builder;
       }
@@ -200,7 +204,7 @@ public final class Ec2SigningKey extends CoseKey {
     return new Builder();
   }
 
-  private KeyPair getKeyPairFromCbor() throws CoseException, CborException {
+  private KeyPair getKeyPairFromCbor() throws CborException, CoseException {
     if (keyType != Headers.KEY_TYPE_EC2) {
       throw new CoseException("Expecting EC2 key (type 2), found type " + keyType);
     }
@@ -210,7 +214,7 @@ public final class Ec2SigningKey extends CoseKey {
     int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
 
     // Get private key.
-    final PrivateKey privateKey;
+    final ECPrivateKey privateKey;
     if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
       byte[] key = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
       if (key.length == 0) {
@@ -225,7 +229,7 @@ public final class Ec2SigningKey extends CoseKey {
       if (privateKey == null) {
         throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
       } else {
-        return new KeyPair(null, privateKey);
+        return new KeyPair(CoseUtils.getEc2PublicKeyFromPrivateKey(curve, privateKey), privateKey);
       }
     }
 
@@ -263,7 +267,6 @@ public final class Ec2SigningKey extends CoseKey {
       throw new CoseException("Unsupported algorithm.");
     }
 
-    // JCE support for signing
     try {
       Signature signature;
       if (provider == null) {
@@ -282,9 +285,6 @@ public final class Ec2SigningKey extends CoseKey {
 
   public void verify(Algorithm algorithm, byte[] message, byte[] signature, String provider)
       throws CoseException {
-    if (keyPair.getPublic() == null) {
-      throw new CoseException("Missing key material for verification.");
-    }
     if (algorithm != Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256) {
       // TODO: Add support for other algorithms.
       throw new CoseException("Unsupported algorithm.");
@@ -299,8 +299,7 @@ public final class Ec2SigningKey extends CoseKey {
       }
       signer.initVerify(keyPair.getPublic());
       signer.update(message);
-      boolean x = signer.verify(signature);
-      if (!x) {
+      if (!signer.verify(signature)) {
         throw new CoseException("Failed verification.");
       }
     } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException

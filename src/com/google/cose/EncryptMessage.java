@@ -103,11 +103,11 @@ public class EncryptMessage extends CoseMessage {
     return encryptArrayBuilder.end().build().get(0);
   }
 
-  public static EncryptMessage deserialize(byte[] messageBytes) throws CoseException, CborException {
+  public static EncryptMessage deserialize(byte[] messageBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static EncryptMessage decode(DataItem cborMessage) throws CoseException, CborException {
+  public static EncryptMessage decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 4) {
       throw new CoseException("Error while decoding EncryptMessage. Expected 4 items,"

@@ -72,7 +72,7 @@ public final class EncryptionKey extends CoseKey {
     private byte[] baseIv;
     private byte[] secretKey;
 
-    public EncryptionKey build() throws CoseException, CborException {
+    public EncryptionKey build() throws CborException, CoseException {
       if (secretKey == null) {
         throw new CoseException("Missing key material information.");
       }
@@ -149,35 +149,36 @@ public final class EncryptionKey extends CoseKey {
     return new EncryptionKey(cborKey);
   }
 
+  private byte[] aesGcmCipher(int mode, Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)
+      throws IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException,
+      InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException {
+    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+    GCMParameterSpec gcmSpec = new GCMParameterSpec(16 * 8, iv);
+    cipher.init(mode, new SecretKeySpec(secretKey, algorithm.getJavaAlgorithmId()),
+        gcmSpec);
+    if (aad != null) {
+      cipher.updateAAD(aad);
+    }
+    return cipher.doFinal(message);
+  }
+
   public byte[] encrypt(Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)
       throws CoseException {
     try {
-      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-      GCMParameterSpec gcmSpec = new GCMParameterSpec(16 * 8, iv);
-      cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(secretKey, algorithm.getJavaAlgorithmId()),
-          gcmSpec);
-      if (aad != null) {
-        cipher.updateAAD(aad);
-      }
-      return cipher.doFinal(message);
+      return aesGcmCipher(Cipher.ENCRYPT_MODE, algorithm, message, iv, aad);
     } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException
         | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
       throw new CoseException("Error while encrypting message.", e);
     }
   }
 
-  public byte[] decrypt(Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)
+  public byte[] decrypt(Algorithm algorithm, byte[] ciphertext, byte[] iv, byte[] aad)
       throws CoseException {
     try {
-      Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-      GCMParameterSpec gcmSpec = new GCMParameterSpec(16 * 8, iv);
-      cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(secretKey, algorithm.getJavaAlgorithmId()),
-          gcmSpec);
-      cipher.updateAAD(aad);
-      return cipher.doFinal(message);
+      return aesGcmCipher(Cipher.DECRYPT_MODE, algorithm, ciphertext, iv, aad);
     } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException
         | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-      throw new CoseException("Error while encrypting message.", e);
+      throw new CoseException("Error while decrypting message.", e);
     }
   }
 }

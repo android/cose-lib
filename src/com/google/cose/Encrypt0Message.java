@@ -22,8 +22,12 @@ import co.nstant.in.cbor.builder.ArrayBuilder;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.structure.EncryptStructure;
+import com.google.cose.structure.EncryptStructure.EncryptionContext;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
+import com.google.cose.utils.Headers;
 import java.util.List;
 
 /**
@@ -63,6 +67,24 @@ public class Encrypt0Message extends CoseMessage {
       this.ciphertext = ciphertext;
       return this;
     }
+
+    /**
+     * Takes in key and message with other parameters to generate Ciphertext to be used in message.
+     * @param key EncryptionKey object
+     * @param message message to be encrypted
+     * @param iv iv to be used for encryption
+     * @param externalAad external aad to be used with encryption
+     * @param algorithm algorithm for encryption.
+     * @return Encrypt0Message.Builder object
+     * @throws CborException if cbor information was not parseable
+     * @throws CoseException if encryption fails for some reason
+     */
+    public Builder generateCiphertext(EncryptionKey key, byte[] message, byte[] iv,
+        byte[] externalAad, Algorithm algorithm) throws CborException, CoseException {
+      this.ciphertext = key.encrypt(algorithm, message, iv, new EncryptStructure(
+          EncryptionContext.ENCRYPT0, protectedHeaders, externalAad).serialize());
+      return this;
+    }
   }
 
   @Override
@@ -75,11 +97,11 @@ public class Encrypt0Message extends CoseMessage {
     return encryptArrayBuilder.end().build().get(0);
   }
 
-  public static Encrypt0Message deserialize(byte[] messageBytes) throws CoseException, CborException {
+  public static Encrypt0Message deserialize(byte[] messageBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static Encrypt0Message decode(DataItem cborMessage) throws CoseException, CborException {
+  public static Encrypt0Message decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 3) {
       throw new CoseException("Error while decoding Encrypt0Message. Expected 3 items,"
@@ -98,5 +120,27 @@ public class Encrypt0Message extends CoseMessage {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public byte[] decrypt(EncryptionKey key, byte[] detachedCiphertextContent, byte[] externalAad,
+      Algorithm algorithm) throws CborException, CoseException {
+    byte[] ciphertext = this.ciphertext;
+    if (ciphertext == null) {
+      ciphertext = detachedCiphertextContent;
+    }
+
+    // find algorithm in the unprotected headers if provided with null.
+    if (algorithm == null) {
+      algorithm = Algorithm.fromCoseAlgorithmId(
+          CborUtils.asInteger(findAttributeInHeaders(Headers.MESSAGE_HEADER_ALGORITHM))
+      );
+    }
+
+    byte[] iv = CborUtils.asByteString(findAttributeInHeaders(Headers.MESSAGE_HEADER_BASE_IV))
+        .getBytes();
+    // generate aad out of the external aad.
+    byte[] aad = new EncryptStructure(EncryptionContext.ENCRYPT0, getProtectedHeaders(), externalAad)
+        .serialize();
+    return key.decrypt(algorithm, ciphertext, iv, aad);
   }
 }

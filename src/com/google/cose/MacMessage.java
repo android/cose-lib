@@ -93,7 +93,7 @@ public class MacMessage extends CoseMessage {
   }
 
   @Override
-  public DataItem encode() throws CoseException, CborException {
+  public DataItem encode() throws CborException, CoseException {
     if (recipients == null) {
       throw new CoseException("Error while serializing MacMessage. Recipient field not found.");
     }
@@ -114,11 +114,11 @@ public class MacMessage extends CoseMessage {
     return macArrayBuilder.end().build().get(0);
   }
 
-  public static MacMessage deserialize(byte[] messageBytes) throws CoseException, CborException {
+  public static MacMessage deserialize(byte[] messageBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static MacMessage decode(DataItem cborMessage) throws CoseException, CborException {
+  public static MacMessage decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 5) {
       throw new CoseException("Error while decoding MacMessage. Expected 5 items,"

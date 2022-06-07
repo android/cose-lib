@@ -46,7 +46,7 @@ public class CborUtils {
    * @param data byte array in cbor format.
    * @return DataItem cbor object
    */
-  public static DataItem decode(final byte[] data) throws CoseException, CborException {
+  public static DataItem decode(final byte[] data) throws CborException, CoseException {
     final ByteArrayInputStream bais = new ByteArrayInputStream(data);
     final List<DataItem> dataItems = new CborDecoder(bais).decode();
     if (dataItems.size() != 1) {
@@ -95,6 +95,15 @@ public class CborUtils {
   }
 
   /**
+   * Returns the {@link DataItem} as an {@link Array}.
+   * @param dataItem cborObject to be converted to Array.
+   * @return Array object
+   */
+  public static List<DataItem> getDataItems(final DataItem dataItem) throws CborException {
+    return asArray(dataItem).getDataItems();
+  }
+
+  /**
    * Returns the {@link DataItem} as a {@link ByteString}.
    * @param dataItem cborObject to be converted to ByteString.
    * @return ByteString object
@@ -105,6 +114,15 @@ public class CborUtils {
           String.format("Expected a byte string, got %s", dataItem.getMajorType().name()));
     }
     return (ByteString) dataItem;
+  }
+
+  /**
+   * Returns the {@link DataItem} as a byte array.
+   * @param dataItem cborObject to get bytes from.
+   * @return byte array
+   */
+  public static byte[] getBytes(final DataItem dataItem) throws CborException {
+    return asByteString(dataItem).getBytes();
   }
 
   /**
@@ -121,15 +139,21 @@ public class CborUtils {
   }
 
   /**
+   * Returns the {@link DataItem} as a String.
+   * @param dataItem cborObject to be converted to string.
+   * @return String
+   */
+  public static String getString(final DataItem dataItem) throws CborException {
+    return asUnicodeString(dataItem).getString();
+  }
+
+  /**
    * Returns DataItem as integer.
    * @param dataItem UnsignedInteger or NegativeInteger
    * @return integer value of the DataItem
    * @throws CborException if dataItem is neither UnsignedInteger not NegativeInteger
    */
   public static int asInteger(final DataItem dataItem) throws CborException {
-    if (dataItem == null) {
-      throw new CborException("Null object passed.");
-    }
     if (dataItem.getMajorType() == MajorType.UNSIGNED_INTEGER) {
       return ((UnsignedInteger) dataItem).getValue().intValue();
     }
