@@ -110,8 +110,7 @@ public class Ec2SigningKeyTest {
         .withPrivateKeyRepresentation().withPkcs8EncodedBytes(d)
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(signingKey.serialize()));
-    Assert.assertArrayEquals(signingKey.keyPair.getPrivate().getEncoded(), d);
-    Assert.assertNotNull(signingKey.keyPair.getPublic());
+    Assert.assertNotNull(signingKey.getPublicKey());
   }
 
   @Test
@@ -122,10 +121,6 @@ public class Ec2SigningKeyTest {
         .withCurve(Headers.CURVE_EC2_P256)
         .withPrivateKeyRepresentation().withDParameter(D_BYTES)
         .build();
-    ECPrivateKey key = (ECPrivateKey) signingKey.keyPair.getPrivate();
-
-    // Assert that the private key has the same parameter value that was passed.
-    Assert.assertEquals(key.getS(), new BigInteger(D_PARAM, 16));
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(signingKey.serialize()));
   }
 

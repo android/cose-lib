@@ -187,13 +187,15 @@ public final class OkpSigningKey extends CoseKey {
     return new OkpSigningKey(cborKey);
   }
 
-  public byte[] sign(Algorithm algorithm, byte[] message) throws CoseException {
+  public byte[] sign(Algorithm algorithm, byte[] message) throws CborException, CoseException {
     if (privateKeyBytes == null) {
       throw new CoseException("Missing key material for signing.");
     }
     if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
       throw new CoseException("Incompatible key type.");
     }
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_SIGN);
     return tinkSign(message);
   }
 
@@ -206,10 +208,13 @@ public final class OkpSigningKey extends CoseKey {
     }
   }
 
-  public void verify(Algorithm algorithm, byte[] message, byte[] signature) throws CoseException {
+  public void verify(Algorithm algorithm, byte[] message, byte[] signature)
+      throws CborException, CoseException {
     if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
       throw new CoseException("Incompatible key type.");
     }
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_VERIFY);
     tinkVerify(signature, message);
   }
 

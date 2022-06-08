@@ -163,7 +163,9 @@ public final class EncryptionKey extends CoseKey {
   }
 
   public byte[] encrypt(Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)
-      throws CoseException {
+      throws CborException, CoseException {
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_ENCRYPT);
     try {
       return aesGcmCipher(Cipher.ENCRYPT_MODE, algorithm, message, iv, aad);
     } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException
@@ -173,7 +175,9 @@ public final class EncryptionKey extends CoseKey {
   }
 
   public byte[] decrypt(Algorithm algorithm, byte[] ciphertext, byte[] iv, byte[] aad)
-      throws CoseException {
+      throws CborException, CoseException {
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_DECRYPT);
     try {
       return aesGcmCipher(Cipher.DECRYPT_MODE, algorithm, ciphertext, iv, aad);
     } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException

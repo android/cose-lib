@@ -44,7 +44,7 @@ import java.util.Set;
 public final class Ec2SigningKey extends CoseKey {
   private static final int SIGN_POSITIVE = 1;
 
-  KeyPair keyPair;
+  private KeyPair keyPair;
 
   public Ec2SigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
@@ -258,7 +258,12 @@ public final class Ec2SigningKey extends CoseKey {
     return new Ec2SigningKey(cborKey);
   }
 
-  public byte[] sign(Algorithm algorithm, byte[] message, String provider) throws CoseException {
+  public PublicKey getPublicKey() {
+    return this.keyPair.getPublic();
+  }
+
+  public byte[] sign(Algorithm algorithm, byte[] message, String provider)
+      throws CborException, CoseException {
     if (keyPair.getPrivate() == null) {
       throw new CoseException("Missing key material for signing.");
     }
@@ -266,6 +271,8 @@ public final class Ec2SigningKey extends CoseKey {
       // TODO: Add support for other algorithms.
       throw new CoseException("Unsupported algorithm.");
     }
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_SIGN);
 
     try {
       Signature signature;
@@ -284,11 +291,13 @@ public final class Ec2SigningKey extends CoseKey {
   }
 
   public void verify(Algorithm algorithm, byte[] message, byte[] signature, String provider)
-      throws CoseException {
+      throws CborException, CoseException {
     if (algorithm != Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256) {
       // TODO: Add support for other algorithms.
       throw new CoseException("Unsupported algorithm.");
     }
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_VERIFY);
 
     try {
       Signature signer;

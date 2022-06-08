@@ -20,6 +20,8 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.common.collect.ImmutableList;
+import com.google.cose.exceptions.CoseException;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
@@ -94,5 +96,18 @@ public abstract class CoseKey {
 
   public java.util.Map<Integer, DataItem> getLabels() {
     return labels;
+  }
+
+  void verifyOperationAllowedByKey(int keyOperation) throws CoseException {
+    if (operations != null && operations.contains(keyOperation)) {
+      throw new CoseException("Key does not allow this operation.");
+    }
+  }
+
+  void verifyAlgorithmMatchesKey(Algorithm algorithm) throws CborException, CoseException {
+    if (this.algorithm != null &&
+        this.algorithm != CborUtils.asInteger(algorithm.getCoseAlgorithmId())) {
+      throw new CoseException("Incompatible key algorithm.");
+    }
   }
 }

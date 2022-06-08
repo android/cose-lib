@@ -144,7 +144,9 @@ public final class MacKey extends CoseKey {
     return new MacKey(cborKey);
   }
 
-  public byte[] createMac(byte[] message, Algorithm algorithm) throws CoseException {
+  public byte[] createMac(byte[] message, Algorithm algorithm) throws CborException, CoseException {
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_MAC_CREATE);
     try {
       Mac mac = Mac.getInstance(algorithm.getJavaAlgorithmId());
       mac.init(new SecretKeySpec(secretKey, ""));
@@ -156,7 +158,9 @@ public final class MacKey extends CoseKey {
   }
 
   public void verifyMac(byte[] message, Algorithm algorithm, final byte[] tag)
-      throws CoseException {
+      throws CborException, CoseException {
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_MAC_VERIFY);
     if (!Arrays.equals(createMac(message, algorithm), tag)) {
       throw new CoseException("Failed mac verification");
     }
