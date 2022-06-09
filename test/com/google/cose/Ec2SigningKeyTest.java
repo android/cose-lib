@@ -23,8 +23,6 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Headers;
-import java.math.BigInteger;
-import java.security.interfaces.ECPrivateKey;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -52,14 +52,18 @@ public abstract class CoseMessage {
     return unprotectedHeaders;
   }
 
-  public DataItem findAttributeInHeaders(int headerIndex) throws CoseException {
-    DataItem item = CoseUtils.getValueFromMap(protectedHeaders, headerIndex);
-    if (item != null) {
-      return item;
-    }
-    item = CoseUtils.getValueFromMap(unprotectedHeaders, headerIndex);
+  public DataItem findAttributeInUnprotectedHeaders(int headerIndex) throws CoseException {
+    DataItem item = CoseUtils.getValueFromMap(unprotectedHeaders, headerIndex);
     if (item == null) {
       throw new CoseException("Could not find header " + headerIndex + " in the message.");
+    }
+    return item;
+  }
+
+  public DataItem findAttributeInProtectedHeaders(int headerIndex) throws CoseException {
+    DataItem item = CoseUtils.getValueFromMap(protectedHeaders, headerIndex);
+    if (item == null) {
+      throw new CoseException("Could not find header " + headerIndex + " in the protected header.");
     }
     return item;
   }

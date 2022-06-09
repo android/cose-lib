@@ -35,6 +35,10 @@ public class Headers {
   public static final int KEY_OPERATIONS_VERIFY = 2;
   public static final int KEY_OPERATIONS_ENCRYPT = 3;
   public static final int KEY_OPERATIONS_DECRYPT = 4;
+  public static final int KEY_OPERATIONS_WRAP_KEY = 5;
+  public static final int KEY_OPERATIONS_UNWRAP_KEY = 6;
+  public static final int KEY_OPERATIONS_DERIVE_KEY = 7;
+  public static final int KEY_OPERATIONS_DERIVE_BITS = 8;
   public static final int KEY_OPERATIONS_MAC_CREATE = 9;
   public static final int KEY_OPERATIONS_MAC_VERIFY = 10;
 

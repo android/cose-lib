@@ -20,6 +20,7 @@ import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
@@ -34,14 +35,14 @@ import java.util.List;
  * know of use cases.
  */
 public abstract class CoseKey {
-  protected String keyId;
-  protected int keyType;
-  protected Integer algorithm;
+  private String keyId;
+  private int keyType;
+  private Integer algorithm;
+  private byte[] baseIv;
+  protected ImmutableMap<Integer, DataItem> labels;
   protected ImmutableList<Integer> operations;
-  protected byte[] baseIv;
-  protected java.util.Map<Integer, DataItem> labels;
 
-  protected final DataItem cborKey;
+  private final DataItem cborKey;
 
   public CoseKey(DataItem cborKey) throws CborException {
     this.cborKey = cborKey;
@@ -94,8 +95,12 @@ public abstract class CoseKey {
     return keyType;
   }
 
-  public java.util.Map<Integer, DataItem> getLabels() {
+  public ImmutableMap<Integer, DataItem> getLabels() {
     return labels;
+  }
+
+  public byte[] getBaseIv() {
+    return baseIv;
   }
 
   void verifyOperationAllowedByKey(int keyOperation) throws CoseException {

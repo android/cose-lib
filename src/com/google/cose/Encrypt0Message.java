@@ -132,12 +132,13 @@ public class Encrypt0Message extends CoseMessage {
     // find algorithm in the unprotected headers if provided with null.
     if (algorithm == null) {
       algorithm = Algorithm.fromCoseAlgorithmId(
-          CborUtils.asInteger(findAttributeInHeaders(Headers.MESSAGE_HEADER_ALGORITHM))
+          CborUtils.asInteger(findAttributeInProtectedHeaders(Headers.MESSAGE_HEADER_ALGORITHM))
       );
     }
 
-    byte[] iv = CborUtils.asByteString(findAttributeInHeaders(Headers.MESSAGE_HEADER_BASE_IV))
-        .getBytes();
+    byte[] iv = CborUtils.getBytes(
+        findAttributeInUnprotectedHeaders(Headers.MESSAGE_HEADER_BASE_IV)
+    );
     // generate aad out of the external aad.
     byte[] aad = new EncryptStructure(EncryptionContext.ENCRYPT0, getProtectedHeaders(), externalAad)
         .serialize();

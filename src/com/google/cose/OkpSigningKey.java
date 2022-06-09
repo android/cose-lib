@@ -45,8 +45,8 @@ public final class OkpSigningKey extends CoseKey {
   public OkpSigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
-    if (keyType != Headers.KEY_TYPE_OKP) {
-      throw new CoseException("Expecting OKP key (type 1), found type " + keyType);
+    if (getKeyType() != Headers.KEY_TYPE_OKP) {
+      throw new CoseException("Expecting OKP key (type 1), found type " + getKeyType());
     }
     int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
     if (curve != Headers.CURVE_OKP_Ed25519) {

@@ -136,9 +136,11 @@ public class PositiveIntegrationTests {
     Map unprotectedHeader = new Map();
     unprotectedHeader.put(new UnsignedInteger(Headers.MESSAGE_HEADER_BASE_IV),
         new ByteString(iv));
-    unprotectedHeader.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
+    Map protectedHeaders = new Map();
+    protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         algorithm.getCoseAlgorithmId());
-    Encrypt0Message encrypt0Message = CoseUtils.generateCoseEncrypt0(key, new Map(), unprotectedHeader, message.getBytes(), null, iv, algorithm);
+    Encrypt0Message encrypt0Message = CoseUtils.generateCoseEncrypt0(key, protectedHeaders,
+        unprotectedHeader, message.getBytes(), null, iv, algorithm);
     byte[] recoveredMessage = encrypt0Message.decrypt(key, null, null, null);
     Assert.assertEquals(message, new String(recoveredMessage));
   }

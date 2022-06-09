@@ -205,8 +205,8 @@ public final class Ec2SigningKey extends CoseKey {
   }
 
   private KeyPair getKeyPairFromCbor() throws CborException, CoseException {
-    if (keyType != Headers.KEY_TYPE_EC2) {
-      throw new CoseException("Expecting EC2 key (type 2), found type " + keyType);
+    if (getKeyType() != Headers.KEY_TYPE_EC2) {
+      throw new CoseException("Expecting EC2 key (type 2), found type " + getKeyType());
     }
 
     final KeyPair keyPair;

@@ -25,6 +25,7 @@ import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.common.collect.ImmutableMap;
 import com.google.cose.CoseKey;
 import com.google.cose.Ec2SigningKey;
 import com.google.cose.Encrypt0Message;
@@ -58,7 +59,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Arrays;
-import java.util.HashMap;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1InputStream;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -85,13 +85,12 @@ public class CoseUtils {
     return arrayBuilder.end().build().get(0);
   }
 
-  public static java.util.Map<Integer, DataItem> getLabelsFromMap(Map keyMap)
-      throws CborException {
-    final java.util.Map<Integer, DataItem> labels = new HashMap<>();
+  public static ImmutableMap<Integer, DataItem> getLabelsFromMap(Map keyMap) throws CborException {
+    ImmutableMap.Builder<Integer, DataItem> labels = ImmutableMap.builder();
     for (DataItem item : keyMap.getKeys()) {
       labels.put(CborUtils.asInteger(item), keyMap.get(item));
     }
-    return labels;
+    return labels.build();
   }
 
   /**
