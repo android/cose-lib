@@ -40,7 +40,7 @@ public class MacStructureTest {
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     MacStructure structure = new MacStructure(context, headers, externalAad, payload);
     Assert.assertEquals(
         "84644D41433043A101054054546869732069732074686520636F6E74656E742E",
@@ -55,7 +55,7 @@ public class MacStructureTest {
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     MacStructure structure = new MacStructure(context, headers, externalAad, payload);
     List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(4, cborArrayItems.size());
@@ -73,7 +73,7 @@ public class MacStructureTest {
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     MacStructure structure = new MacStructure(context, headers, externalAad, payload);
     Assert.assertEquals(
         "84634D414343A101054054546869732069732074686520636F6E74656E742E",
@@ -88,7 +88,7 @@ public class MacStructureTest {
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId());
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     MacStructure structure = new MacStructure(context, headers, externalAad, payload);
     List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(4, cborArrayItems.size());

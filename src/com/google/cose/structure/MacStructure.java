@@ -26,6 +26,10 @@ import com.google.cose.utils.CoseUtils;
  * Encodes the MAC_Structure as mentioned in COSE RFC section 6.3
  */
 public class MacStructure {
+
+  /**
+   * Context strings for MacStructure.
+   */
   public enum MacContext {
     MAC0("MAC0"),
     MAC("MAC");
@@ -49,8 +53,8 @@ public class MacStructure {
   public MacStructure(MacContext context, Map headers, byte[] externalAad, byte[] message) {
     this.context = context;
     this.protectedHeaders = headers;
-    this.externalAad = externalAad;
-    this.message = message;
+    this.externalAad = (externalAad != null) ? externalAad : new byte[0];
+    this.message = (message != null) ? message : new byte[0];
   }
 
   public byte[] serialize() throws CborException {
@@ -58,6 +62,7 @@ public class MacStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, message);
+    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad,
+        message);
   }
 }

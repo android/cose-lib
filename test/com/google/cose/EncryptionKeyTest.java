@@ -38,11 +38,11 @@ public class EncryptionKeyTest {
   public void testRoundTrip() throws CborException, CoseException {
     final String kVal = "65eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d";
     final byte[] k = TestUtilities.hexStringToByteArray(kVal);
-    final String keyId = "meriadoc.brandybuck@buckland.example";
     final Map map = new Map();
     map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
         new UnsignedInteger(Headers.KEY_TYPE_SYMMETRIC));
-    map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID), new ByteString(keyId.getBytes()));
+    map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID),
+        new ByteString(TestUtilities.KEYID_BYTES));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_K), new ByteString(k));
 
     final EncryptionKey key = new EncryptionKey(map);
@@ -51,8 +51,8 @@ public class EncryptionKeyTest {
     final EncryptionKey newKey = EncryptionKey.parse(a);
 
     Assert.assertEquals(Headers.KEY_TYPE_SYMMETRIC, newKey.getKeyType());
-    Assert.assertEquals(keyId, newKey.getKeyId());
     Assert.assertEquals(new ByteString(k), newKey.getLabels().get(Headers.KEY_PARAMETER_K));
+    Assert.assertArrayEquals(TestUtilities.KEYID_BYTES, newKey.getKeyId());
 
     Assert.assertArrayEquals(a, newKey.serialize());
   }
@@ -75,7 +75,7 @@ public class EncryptionKeyTest {
     final String kVal = "65eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d";
     EncryptionKey encryptionKey = EncryptionKey.builder()
         .withSecretKey(TestUtilities.hexStringToByteArray(kVal))
-        .withKeyId("meriadoc.brandybuck@buckland.example")
+        .withKeyId(TestUtilities.KEYID_BYTES)
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(encryptionKey.serialize()));
   }

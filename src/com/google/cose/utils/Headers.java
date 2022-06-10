@@ -65,4 +65,8 @@ public class Headers {
   public static final int CURVE_OKP_X448 = 5;
   public static final int CURVE_OKP_Ed25519 = 6;
   public static final int CURVE_OKP_Ed448 = 7;
+
+  public static final int ECDH_EPHEMERAL_KEY = -1;
+  public static final int ECDH_STATIC_KEY = -2;
+  public static final int ECDH_STATIC_KEY_ID = -3;
 }

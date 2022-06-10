@@ -26,6 +26,10 @@ import com.google.cose.utils.CoseUtils;
  * Encodes the Sig_Structure as mentioned in COSE RFC section 4.4
  */
 public class SignStructure {
+
+  /**
+   * Context strings for SignStructure
+   */
   public enum SignatureContext {
     SIGNATURE1("Signature1"),
     SIGNATURE("Signature"),
@@ -53,8 +57,8 @@ public class SignStructure {
     this.context = context;
     this.protectedBodyHeaders = bodyHeaders;
     this.protectedSignHeaders = signHeaders;
-    this.externalAad = externalAad;
-    this.message = message;
+    this.externalAad = (externalAad != null) ? externalAad : new byte[0];
+    this.message = (message != null) ? message : new byte[0];
   }
 
   public byte[] serialize() throws CborException {

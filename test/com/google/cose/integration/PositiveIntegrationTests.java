@@ -30,9 +30,9 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.util.Base64;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
@@ -46,7 +46,6 @@ import org.junit.runners.JUnit4;
 public class PositiveIntegrationTests {
   @Test
   public void testOkpSigningAndVerificationWithRawKeyBytes() throws CborException, CoseException {
-    byte[] message = TestUtilities.CONTENT.getBytes();
     String signatureVal = "0B99150FB1E436F619676BF879B3439B07C3C29CA17DD59AE2204C36950FABEE227430D"
         + "F3EC2EEB4605073083213CB857D851D9CE472D0EB285E31266034200B";
     String privateKey = "7D1FC441FE95424821D689CE0F93384D61A927FECA5D736F61E98D95C0CDC723";
@@ -55,15 +54,15 @@ public class PositiveIntegrationTests {
         .withXCoordinate(TestUtilities.hexStringToByteArray(publicKey))
         .withDParameter(TestUtilities.hexStringToByteArray(privateKey))
         .build();
-    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_EdDSA, message);
+    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_EdDSA, TestUtilities.CONTENT_BYTES);
     Assert.assertEquals(signatureVal, TestUtilities.bytesToHexString(signature));
 
-    key.verify(Algorithm.SIGNING_ALGORITHM_EdDSA, message, signature);
+    key.verify(Algorithm.SIGNING_ALGORITHM_EdDSA, TestUtilities.CONTENT_BYTES, signature);
   }
 
   @Test
   public void testEc2SignAndVerifyWithPkcs8EncodedKeyBytesJCE() throws CborException, CoseException {
-    byte[] message = TestUtilities.CONTENT.getBytes();
+    byte[] message = TestUtilities.CONTENT_BYTES;
     String x = "4A6C8B7DF241AD4AB03BE78F5AFCAD498496B28B93DC4FA01353CD3848A0A9A7";
     String y = "BCB5A7A766DEF13A8DA6A54101062630DA04F486EA44A28A25AB3D6C0722B5C2";
     String priEncStr = "3041020100301306072A8648CE3D020106082A8648CE3D030107042730250201010420DE7B726"
@@ -82,7 +81,7 @@ public class PositiveIntegrationTests {
   @Test
   public void testEc2SignAndVerifyWithPkcs8EncodedKeyBytesBC() throws CborException, CoseException {
     Security.addProvider(new BouncyCastleProvider());
-    byte[] message = TestUtilities.CONTENT.getBytes();
+    byte[] message = TestUtilities.CONTENT_BYTES;
     String x = "7578E06A498E413E548B9CC39D5A606BD00DE7F6AA71D81439698F60F8785DA0";
     String y = "38781826E5B085CFEC878FACA17FA378CE310259E72EE19C5F743AF0647959A1";
     String priEncStr = "308193020100301306072A8648CE3D020106082A8648CE3D030107047930770201010420DB"
@@ -102,11 +101,11 @@ public class PositiveIntegrationTests {
 
   @Test
   public void testEncryptionAndDecryptionWithRawKeyBytes() throws CborException, CoseException {
-    byte[] message = TestUtilities.CONTENT.getBytes();
-    byte[] keyMaterial = "1234567890abcdef1234567890abcdef".getBytes();
+    byte[] message = TestUtilities.CONTENT_BYTES;
+    byte[] keyMaterial = "1234567890abcdef1234567890abcdef".getBytes(StandardCharsets.UTF_8);
     EncryptionKey key = EncryptionKey.builder().withSecretKey(keyMaterial).build();
-    byte[] iv = "abcdef0123456789".getBytes();
-    byte[] aad = "this is aad".getBytes();
+    byte[] iv = "abcdef0123456789".getBytes(StandardCharsets.UTF_8);
+    byte[] aad = "this is aad".getBytes(StandardCharsets.UTF_8);
     byte[] ciphertext = key.encrypt(Algorithm.ENCRYPTION_AES_256_GCM, message, iv, aad);
     byte[] recoveredMessage = key.decrypt(Algorithm.ENCRYPTION_AES_256_GCM, ciphertext, iv, aad);
     Assert.assertArrayEquals(message, recoveredMessage);
@@ -114,8 +113,8 @@ public class PositiveIntegrationTests {
 
   @Test
   public void testMacCreateAndVerifyWithRawKeyBytes() throws CborException, CoseException {
-    byte[] message = TestUtilities.CONTENT.getBytes();
-    byte[] keyMaterial = "1234567890abcdef1234567890abcdef".getBytes();
+    byte[] message = TestUtilities.CONTENT_BYTES;
+    byte[] keyMaterial = "1234567890abcdef1234567890abcdef".getBytes(StandardCharsets.UTF_8);
     String expectedTag = "A0996BA1613EDE030284B89C9F5E68808584182CCD43866A65466627246AFD6A";
     MacKey key = MacKey.builder().withSecretKey(keyMaterial).build();
     byte[] tag = key.createMac(message, Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256);
@@ -125,7 +124,6 @@ public class PositiveIntegrationTests {
 
   @Test
   public void testDecryptionOfEncrypt0Message() throws CborException, CoseException {
-    String message = TestUtilities.CONTENT;
     String cborKeyString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E"
         + "6578616D706C6520582065EDA5A12577C2BAE829437FE338701A10AAA375E1BB5B5DE108DE439C08551D";
     EncryptionKey key = EncryptionKey.parse(TestUtilities.hexStringToByteArray(cborKeyString));
@@ -140,8 +138,8 @@ public class PositiveIntegrationTests {
     protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         algorithm.getCoseAlgorithmId());
     Encrypt0Message encrypt0Message = CoseUtils.generateCoseEncrypt0(key, protectedHeaders,
-        unprotectedHeader, message.getBytes(), null, iv, algorithm);
+        unprotectedHeader, TestUtilities.CONTENT_BYTES, null, iv, algorithm);
     byte[] recoveredMessage = encrypt0Message.decrypt(key, null, null, null);
-    Assert.assertEquals(message, new String(recoveredMessage));
+    Assert.assertArrayEquals(TestUtilities.CONTENT_BYTES, recoveredMessage);
   }
 }

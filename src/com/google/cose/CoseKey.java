@@ -17,8 +17,11 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
+import co.nstant.in.cbor.model.Array;
+import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.cose.exceptions.CoseException;
@@ -27,7 +30,10 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Abstract class for COSE_Key which would be used for implementing keys for other
@@ -35,31 +41,21 @@ import java.util.List;
  * know of use cases.
  */
 public abstract class CoseKey {
-  private String keyId;
-  private int keyType;
-  private Integer algorithm;
-  private byte[] baseIv;
+  private final byte[] keyId;
+  private final int keyType;
+  private final Integer algorithm;
+  private final byte[] baseIv;
   protected ImmutableMap<Integer, DataItem> labels;
   protected ImmutableList<Integer> operations;
 
   private final DataItem cborKey;
 
   public CoseKey(DataItem cborKey) throws CborException {
-    this.cborKey = cborKey;
-    if (cborKey != null) {
-      populate();
+    if (cborKey == null) {
+      throw new IllegalArgumentException("cborKey cannot be null.");
     }
-  }
+    this.cborKey = cborKey;
 
-  /**
-   * Implements the cose to byte serialization.
-   * @return byte array representation of the key
-   */
-  byte[] serialize() throws CborException {
-    return CborUtils.encode(cborKey);
-  }
-
-  private void populate() throws CborException {
     final Map keyMap = CborUtils.asMap(cborKey);
     final DataItem type = CoseUtils.getValueFromMap(keyMap, Headers.KEY_PARAMETER_KEY_TYPE);
 
@@ -67,7 +63,7 @@ public abstract class CoseKey {
     labels = CoseUtils.getLabelsFromMap(keyMap);
 
     final DataItem keyId = CoseUtils.getValueFromMap(keyMap, Headers.KEY_PARAMETER_KEY_ID);
-    this.keyId = (keyId != null) ? new String(CborUtils.asByteString(keyId).getBytes()) : null;
+    this.keyId = (keyId != null) ? CborUtils.getBytes(keyId) : null;
 
     final DataItem algorithm = CoseUtils.getValueFromMap(keyMap, Headers.KEY_PARAMETER_ALGORITHM);
     this.algorithm = (algorithm != null) ? CborUtils.asInteger(algorithm) : null;
@@ -87,7 +83,19 @@ public abstract class CoseKey {
     this.baseIv = (baseIv != null) ? CborUtils.asByteString(baseIv).getBytes() : null;
   }
 
-  public String getKeyId() {
+  public DataItem encode() {
+    return cborKey;
+  }
+
+  /**
+   * Implements the cose to byte serialization.
+   * @return byte array representation of the key
+   */
+  public byte[] serialize() throws CborException {
+    return CborUtils.encode(cborKey);
+  }
+
+  public byte[] getKeyId() {
     return keyId;
   }
 
@@ -104,15 +112,80 @@ public abstract class CoseKey {
   }
 
   void verifyOperationAllowedByKey(int keyOperation) throws CoseException {
-    if (operations != null && operations.contains(keyOperation)) {
+    if (operations != null && !operations.contains(keyOperation)) {
       throw new CoseException("Key does not allow this operation.");
     }
   }
 
   void verifyAlgorithmMatchesKey(Algorithm algorithm) throws CborException, CoseException {
-    if (this.algorithm != null &&
-        this.algorithm != CborUtils.asInteger(algorithm.getCoseAlgorithmId())) {
+    if (this.algorithm != null
+        && this.algorithm != CborUtils.asInteger(algorithm.getCoseAlgorithmId())) {
       throw new CoseException("Incompatible key algorithm.");
+    }
+  }
+
+  abstract static class Builder<T extends Builder<T>> {
+    private int keyType;
+    private byte[] keyId;
+    private Algorithm algorithm;
+    private final Set<Integer> operations = new LinkedHashSet<>();
+    private byte[] baseIv;
+
+    abstract T self();
+    abstract CoseKey build() throws CborException, CoseException;
+    abstract void verifyKeyMaterialPresentAndComplete() throws CoseException;
+
+    protected Map compile() throws CoseException {
+      verifyKeyMaterialPresentAndComplete();
+
+      Map cborKey = new Map();
+      cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
+          new UnsignedInteger(keyType));
+
+      if (keyId != null) {
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID), new ByteString(keyId));
+      }
+      if (algorithm != null) {
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_ALGORITHM),
+            algorithm.getCoseAlgorithmId());
+      }
+      if (operations.size() != 0) {
+        Array keyOperations = new Array();
+        for (int operation : operations) {
+          keyOperations.add(new UnsignedInteger(operation));
+        }
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_OPERATIONS), keyOperations);
+      }
+      if (baseIv != null) {
+        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_BASE_IV),
+            new ByteString(baseIv));
+      }
+      return cborKey;
+    }
+
+    public T withKeyType(int keyType) {
+      this.keyType = keyType;
+      return self();
+    }
+
+    public T withKeyId(byte[] keyId) {
+      this.keyId = keyId;
+      return self();
+    }
+
+    public T withAlgorithm(Algorithm algorithm) {
+      this.algorithm = algorithm;
+      return self();
+    }
+
+    public T withOperations(Integer...operations) throws CoseException {
+      this.operations.addAll(Arrays.asList(operations));
+      return self();
+    }
+
+    public T withBaseIv(byte[] baseIv) {
+      this.baseIv = baseIv;
+      return self();
     }
   }
 }

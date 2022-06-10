@@ -46,11 +46,11 @@ public class CborUtils {
    * @param data byte array in cbor format.
    * @return DataItem cbor object
    */
-  public static DataItem decode(final byte[] data) throws CborException, CoseException {
+  public static DataItem decode(final byte[] data) throws CborException {
     final ByteArrayInputStream bais = new ByteArrayInputStream(data);
     final List<DataItem> dataItems = new CborDecoder(bais).decode();
     if (dataItems.size() != 1) {
-      throw new CoseException("Byte stream cannot be decoded properly. Expected 1 item, found "
+      throw new CborException("Byte stream cannot be decoded properly. Expected 1 item, found "
           + dataItems.size());
     }
     return dataItems.get(0);
@@ -92,6 +92,16 @@ public class CborUtils {
           String.format("Expected an array, got %s", dataItem.getMajorType().name()));
     }
     return (Array) dataItem;
+  }
+
+  public static Array asArray(final DataItem dataItem, final int length,
+      final String semanticName) throws CborException {
+    Array item = asArray(dataItem);
+    if (item.getDataItems().size() != length) {
+      throw new CborException(String.format("Expected %s to be of size %d, recieved %d",
+          semanticName, length, item.getDataItems().size()));
+    }
+    return item;
   }
 
   /**
@@ -171,7 +181,7 @@ public class CborUtils {
    */
   public static boolean isNull(final DataItem item) {
     return (item.getMajorType() == MajorType.SPECIAL)
-        && ((Special)item).getSpecialType() == SpecialType.SIMPLE_VALUE
-        && ((SimpleValue)item).getSimpleValueType() == SimpleValueType.NULL;
+        && ((Special) item).getSpecialType() == SpecialType.SIMPLE_VALUE
+        && ((SimpleValue) item).getSimpleValueType() == SimpleValueType.NULL;
   }
 }

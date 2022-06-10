@@ -17,13 +17,11 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.model.Array;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
-import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
@@ -31,8 +29,6 @@ import com.google.cose.utils.Headers;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -65,69 +61,46 @@ public final class EncryptionKey extends CoseKey {
     }
   }
 
-  public static class Builder {
-    private String keyId;
-    private Algorithm algorithm;
-    private final Set<Integer> operations = new LinkedHashSet<>();
-    private byte[] baseIv;
+  public static EncryptionKey parse(byte[] keyBytes) throws CborException, CoseException {
+    DataItem dataItem = CborUtils.decode(keyBytes);
+    return decode(dataItem);
+  }
+
+  public static EncryptionKey decode(DataItem cborKey) throws CborException, CoseException {
+    return new EncryptionKey(cborKey);
+  }
+
+  public static class Builder extends CoseKey.Builder<Builder> {
     private byte[] secretKey;
 
-    public EncryptionKey build() throws CborException, CoseException {
+    @Override
+    Builder self() {
+      return this;
+    }
+
+    @Override
+    void verifyKeyMaterialPresentAndComplete() throws CoseException {
       if (secretKey == null) {
         throw new CoseException("Missing key material information.");
       }
+    }
 
-      Map cborKey = new Map();
-      cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
-          new UnsignedInteger(Headers.KEY_TYPE_SYMMETRIC));
+    @Override
+    public EncryptionKey build() throws CborException, CoseException {
+      withKeyType(Headers.KEY_TYPE_SYMMETRIC);
+      Map cborKey = compile();
 
-      if (keyId != null) {
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID),
-            new ByteString(keyId.getBytes()));
-      }
-      if (algorithm != null) {
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_ALGORITHM),
-            algorithm.getCoseAlgorithmId());
-      }
-      if (operations.size() != 0) {
-        Array keyOperations = new Array();
-        for (int operation: operations) {
-          keyOperations.add(new UnsignedInteger(operation));
-        }
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_OPERATIONS), keyOperations);
-      }
-      if (baseIv != null) {
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_BASE_IV),
-            new ByteString(baseIv));
-      }
-      if (secretKey != null) {
-        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_K), new ByteString(secretKey));
-      }
+      cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_K), new ByteString(secretKey));
       return new EncryptionKey(cborKey);
     }
 
-    public Builder withKeyId(String keyId) {
-      this.keyId = keyId;
-      return this;
-    }
-
-    public Builder withAlgorithm(Algorithm algorithm) {
-      this.algorithm = algorithm;
-      return this;
-    }
-
+    @Override
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
         if (operation != Headers.KEY_OPERATIONS_ENCRYPT && operation != Headers.KEY_OPERATIONS_DECRYPT)
           throw new CoseException("Encryption key only supports Encrypt or Decrypt operations.");
-        this.operations.add(operation);
       }
-      return this;
-    }
-
-    public Builder withBaseIv(byte[] baseIv) {
-      this.baseIv = baseIv;
-      return this;
+      return super.withOperations(operations);
     }
 
     public Builder withSecretKey(byte[] k) {
@@ -138,15 +111,6 @@ public final class EncryptionKey extends CoseKey {
 
   public static Builder builder() {
     return new Builder();
-  }
-
-  public static EncryptionKey parse(byte[] keyBytes) throws CborException, CoseException {
-    DataItem dataItem = CborUtils.decode(keyBytes);
-    return decode(dataItem);
-  }
-
-  public static EncryptionKey decode(DataItem cborKey) throws CborException, CoseException {
-    return new EncryptionKey(cborKey);
   }
 
   private byte[] aesGcmCipher(int mode, Algorithm algorithm, byte[] message, byte[] iv, byte[] aad)

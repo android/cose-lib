@@ -38,7 +38,7 @@ public class MacMessageTest {
       "8543A10105A054546869732069732074686520636F6E74656E742E58202BDCC89F058216B8A208DDC6D8B54AA91"
           + "F48BD63484986565105C9AD5A6682F6818340A20125044A6F75722D73656372657440"
     ));
-    Assert.assertEquals(TestUtilities.CONTENT, new String(message.getMessage()));
+    Assert.assertArrayEquals(TestUtilities.CONTENT_BYTES, message.getMessage());
     Assert.assertEquals("A10105",
         TestUtilities.bytesToHexString(CborUtils.encode(message.getProtectedHeaders())));
     Assert.assertEquals(Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256.getCoseAlgorithmId(),
@@ -79,7 +79,7 @@ public class MacMessageTest {
     MacMessage message = MacMessage.builder()
         .withProtectedHeaders(protectedHeaders)
         .withUnprotectedHeaders(new Map())
-        .withMessage(TestUtilities.CONTENT.getBytes())
+        .withMessage(TestUtilities.CONTENT_BYTES)
         .withTag(TestUtilities.hexStringToByteArray(
             "2BDCC89F058216B8A208DDC6D8B54AA91F48BD63484986565105C9AD5A6682F6"))
         .withRecipients(Collections.singletonList(r))
@@ -114,7 +114,7 @@ public class MacMessageTest {
     MacMessage message = MacMessage.builder()
         .withProtectedHeaders(protectedHeaders)
         .withUnprotectedHeaders(new Map())
-        .withMessage(TestUtilities.CONTENT.getBytes())
+        .withMessage(TestUtilities.CONTENT_BYTES)
         .withTag(TestUtilities.hexStringToByteArray(
             "2BDCC89F058216B8A208DDC6D8B54AA91F48BD63484986565105C9AD5A6682F6"))
         .withRecipients(Collections.singletonList(r))

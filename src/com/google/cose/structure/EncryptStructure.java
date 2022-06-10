@@ -26,6 +26,10 @@ import com.google.cose.utils.CoseUtils;
  * Encodes the Enc_Structure as mentioned in COSE RFC section 5.3
  */
 public class EncryptStructure {
+
+  /**
+   * Context strings for EncryptStructure.
+   */
   public enum EncryptionContext {
     ENCRYPT0("Encrypt0"),
     ENCRYPT("Encrypt"),
@@ -51,7 +55,7 @@ public class EncryptStructure {
   public EncryptStructure(EncryptionContext context, Map headers, byte[] externalAad) {
     this.context = context;
     this.protectedHeaders = headers;
-    this.externalAad = externalAad;
+    this.externalAad = (externalAad != null) ? externalAad : new byte[0];
   }
 
   public byte[] serialize() throws CborException {
@@ -59,6 +63,7 @@ public class EncryptStructure {
   }
 
   public DataItem encode() throws CborException {
-    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad, null);
+    return CoseUtils.encodeStructure(context.getContext(), protectedHeaders, null, externalAad,
+        null);
   }
 }

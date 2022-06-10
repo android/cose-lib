@@ -38,7 +38,7 @@ public class SignStructureTest {
     Map protectedSignHeaders = new Map();
     protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     SignStructure s = new SignStructure(context, new Map(), protectedSignHeaders, externalAad,
         payload);
     Assert.assertEquals(
@@ -53,7 +53,7 @@ public class SignStructureTest {
     Map protectedSignHeaders = new Map();
     protectedSignHeaders.put(new UnsignedInteger(1), new NegativeInteger(-7));
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     SignStructure structure = new SignStructure(context, new Map(), protectedSignHeaders,
         externalAad, payload);
     List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
@@ -70,7 +70,7 @@ public class SignStructureTest {
   public void testSign1StructureSerialization() throws CborException {
     SignatureContext context = SignatureContext.SIGNATURE1;
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     SignStructure s = new SignStructure(context, new Map(), null, externalAad, payload);
     Assert.assertEquals(
         "846A5369676E617475726531404054546869732069732074686520636F6E74656E742E",
@@ -82,7 +82,7 @@ public class SignStructureTest {
   public void testSign1StructureEncoding() throws CborException {
     SignatureContext context = SignatureContext.SIGNATURE1;
     byte[] externalAad = new byte[0];
-    byte[] payload = TestUtilities.CONTENT.getBytes();
+    byte[] payload = TestUtilities.CONTENT_BYTES;
     SignStructure structure = new SignStructure(context, new Map(), null, externalAad, payload);
     List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(4, cborArrayItems.size());

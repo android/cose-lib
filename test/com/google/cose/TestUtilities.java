@@ -16,9 +16,14 @@
 
 package com.google.cose;
 
+import java.nio.charset.StandardCharsets;
+
 public class TestUtilities {
-  public static final String CONTENT = "This is the content.";
+  public static final byte[] CONTENT_BYTES = "This is the content.".getBytes(StandardCharsets.UTF_8);
   public static final String SHARED_KEY_ID = "our-secret";
+  public static final byte[] KEYID_BYTES =
+      "meriadoc.brandybuck@buckland.example".getBytes(StandardCharsets.UTF_8);
+
   private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
 
   public static byte[] hexStringToByteArray(String s) {

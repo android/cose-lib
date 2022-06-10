@@ -78,7 +78,7 @@ public class CoseUtils {
     if (protectedSignHeaders != null) {
       arrayBuilder.add(serializeProtectedHeaders(protectedSignHeaders));
     }
-    arrayBuilder.add(externalAad);
+    arrayBuilder.add((externalAad != null) ? externalAad : new byte[0]);
     if (payload != null) {
       arrayBuilder.add(payload);
     }
@@ -86,7 +86,7 @@ public class CoseUtils {
   }
 
   public static ImmutableMap<Integer, DataItem> getLabelsFromMap(Map keyMap) throws CborException {
-    ImmutableMap.Builder<Integer, DataItem> labels = ImmutableMap.builder();
+    final ImmutableMap.Builder<Integer, DataItem> labels = ImmutableMap.builder();
     for (DataItem item : keyMap.getKeys()) {
       labels.put(CborUtils.asInteger(item), keyMap.get(item));
     }
@@ -174,8 +174,7 @@ public class CoseUtils {
     }
   }
 
-  public static Map asProtectedHeadersMap(DataItem serialProtectedHeaders)
-      throws CborException, CoseException {
+  public static Map asProtectedHeadersMap(DataItem serialProtectedHeaders) throws CborException {
     if (serialProtectedHeaders.getMajorType() != MajorType.BYTE_STRING) {
       throw new CborException("Expected type BYTE_STRING, recieved "
           + serialProtectedHeaders.getMajorType());
@@ -216,8 +215,8 @@ public class CoseUtils {
         Q.getAffineYCoord().toBigInteger());
   }
 
-  public Mac0Message generateCoseMac0(MacKey key, Map protectedHeaders, Map unprotectedHeaders,
-      byte[] payloadMessage, byte[] detachedContent, Algorithm algorithm)
+  public static Mac0Message generateCoseMac0(MacKey key, Map protectedHeaders,
+      Map unprotectedHeaders, byte[] payloadMessage, byte[] detachedContent, Algorithm algorithm)
       throws CborException, CoseException {
     byte[] message = getMessageFromDetachedOrPayload(payloadMessage, detachedContent);
 
@@ -231,12 +230,19 @@ public class CoseUtils {
         .build();
   }
 
-  public void verifyCoseMac0(MacKey key, Mac0Message message, byte[] detachedContent,
+  public static boolean verifyCoseMac0(MacKey key, Mac0Message message, byte[] detachedContent,
       Algorithm algorithm) throws CborException, CoseException {
     byte[] macedMessage = getMessageFromDetachedOrPayload(message.getMessage(), detachedContent);
     byte[] toBeMaced = new MacStructure(MacContext.MAC0, message.getProtectedHeaders(), new byte[0],
         macedMessage).serialize();
-    key.verifyMac(toBeMaced, algorithm, message.getTag());
+    if (algorithm == null) {
+      algorithm = Algorithm.fromCoseAlgorithmId(
+          CborUtils.asInteger(
+              message.findAttributeInProtectedHeaders(Headers.MESSAGE_HEADER_ALGORITHM)
+          )
+      );
+    }
+    return key.verifyMac(toBeMaced, algorithm, message.getTag());
   }
 
   public static Encrypt0Message generateCoseEncrypt0(EncryptionKey key, Map protectedHeaders,
@@ -398,14 +404,14 @@ public class CoseUtils {
 
   private static byte[] getMessageFromDetachedOrPayload(byte[] payloadMessage,
       byte[] detachedContent) throws CoseException {
-    int payloadLen = payloadMessage.length;
-    int contentLen = detachedContent.length;
+    int payloadLen = payloadMessage == null ? 0 : payloadMessage.length;
+    int contentLen = detachedContent == null ? 0 : detachedContent.length;
     if (payloadLen > 0 && contentLen > 0) {
       throw new CoseException("Both detached content and payload cannot be non-empty.");
     }
-    if (payloadMessage.length > 0) {
+    if (payloadLen > 0) {
       return payloadMessage;
-    } else if (detachedContent.length > 0) {
+    } else if (contentLen > 0) {
       return detachedContent;
     } else {
       throw new CoseException("Need message bytes to generate signature.");

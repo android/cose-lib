@@ -40,6 +40,7 @@ public enum Algorithm {
   ENCRYPTION_AES_192_GCM(2, "AES"),
   ENCRYPTION_AES_256_GCM(3, "AES"),
 
+  ECDH_ES_HKDF_256(-25, null),
   DIRECT_CEK_USAGE(-6, null);
 
   private final int coseAlgorithmId;

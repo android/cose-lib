@@ -22,7 +22,6 @@ import co.nstant.in.cbor.model.Map;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
-import com.google.cose.utils.Headers;
 
 /**
  * Implements the base class for COSE Message structure to be implemented for other message types.
@@ -52,18 +51,18 @@ public abstract class CoseMessage {
     return unprotectedHeaders;
   }
 
-  public DataItem findAttributeInUnprotectedHeaders(int headerIndex) throws CoseException {
-    DataItem item = CoseUtils.getValueFromMap(unprotectedHeaders, headerIndex);
+  public DataItem findAttributeInUnprotectedHeaders(int attribute) throws CoseException {
+    DataItem item = CoseUtils.getValueFromMap(unprotectedHeaders, attribute);
     if (item == null) {
-      throw new CoseException("Could not find header " + headerIndex + " in the message.");
+      throw new CoseException("Could not find header " + attribute + " in the unprotected header.");
     }
     return item;
   }
 
-  public DataItem findAttributeInProtectedHeaders(int headerIndex) throws CoseException {
-    DataItem item = CoseUtils.getValueFromMap(protectedHeaders, headerIndex);
+  public DataItem findAttributeInProtectedHeaders(int attribute) throws CoseException {
+    DataItem item = CoseUtils.getValueFromMap(protectedHeaders, attribute);
     if (item == null) {
-      throw new CoseException("Could not find header " + headerIndex + " in the protected header.");
+      throw new CoseException("Could not find header " + attribute + " in the protected headers.");
     }
     return item;
   }
