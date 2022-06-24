@@ -35,7 +35,7 @@
       <version>1.63</version>
     </dependency>
   </dependencies>
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
   <name>COSE for Java</name>
   <description>Java implementation of RFC 8152: CBOR Object Signing and Encryption (COSE) </description>
   <url>https://github.com/android/cose-lib</url>
@@ -188,15 +188,13 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.7.2</version>
+          <version>2.22.2</version>
           <configuration>
             <includes>
               <include>${test.include}</include>
             </includes>
-            <!-- By having our own entries here, we also override the default exclusion filter, which excludes all nested classes. -->
-            <excludes>
-            </excludes>
-            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <redirectTestOutputToFile>false</redirectTestOutputToFile>
+            <forkCount>0</forkCount>
             <runOrder>alphabetical</runOrder>
             <!-- Set max heap for tests. -->
             <!-- Catch dependencies on the default locale by setting it to hi-IN. -->
