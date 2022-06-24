@@ -112,18 +112,28 @@ public class Ec2KeyAgreementKeyTest {
     }
   }
 
-  @Test(expected = CoseException.class)
-  public void testOkpKeyParsingInEc2KeyAgreementKey() throws CborException, CoseException {
+  @Test
+  public void testOkpKeyParsingInEc2KeyAgreementKey() throws CborException {
     String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testEc2KeyParsingWithIncorrectCurve() throws CborException, CoseException {
+  @Test
+  public void testEc2KeyParsingWithIncorrectCurve() throws CborException {
     String cborString = "A501022006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A22402358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
   @Test

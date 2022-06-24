@@ -74,7 +74,7 @@ public abstract class OkpKey extends CoseKey {
     }
 
     public T withCurve(int curve) throws CoseException {
-      if ((curve != Headers.CURVE_OKP_X25519) && (curve != Headers.CURVE_OKP_Ed25519)) {
+      if ((curve != Headers.CURVE_OKP_X25519) && (curve != Headers.CURVE_OKP_ED25519)) {
         throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
       }
       this.curve = curve;

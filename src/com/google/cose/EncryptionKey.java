@@ -97,8 +97,10 @@ public final class EncryptionKey extends CoseKey {
     @Override
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
-        if (operation != Headers.KEY_OPERATIONS_ENCRYPT && operation != Headers.KEY_OPERATIONS_DECRYPT)
+        if (operation != Headers.KEY_OPERATIONS_ENCRYPT
+            && operation != Headers.KEY_OPERATIONS_DECRYPT) {
           throw new CoseException("Encryption key only supports Encrypt or Decrypt operations.");
+        }
       }
       return super.withOperations(operations);
     }

@@ -42,7 +42,7 @@ public final class OkpSigningKey extends OkpKey {
     super(cborKey);
 
     int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
-    if (curve != Headers.CURVE_OKP_Ed25519) {
+    if (curve != Headers.CURVE_OKP_ED25519) {
       throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
     }
 
@@ -125,7 +125,7 @@ public final class OkpSigningKey extends OkpKey {
 
     @Override
     public OkpSigningKey build() throws CborException, CoseException {
-      withCurve(Headers.CURVE_OKP_Ed25519);
+      withCurve(Headers.CURVE_OKP_ED25519);
 
       Map cborKey = compile();
       if (dParameter != null) {
@@ -148,7 +148,7 @@ public final class OkpSigningKey extends OkpKey {
     if (privateKeyBytes == null) {
       throw new CoseException("Missing key material for signing.");
     }
-    if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
+    if (algorithm != Algorithm.SIGNING_ALGORITHM_EDDSA) {
       throw new CoseException("Incompatible key type.");
     }
     verifyAlgorithmMatchesKey(algorithm);
@@ -167,7 +167,7 @@ public final class OkpSigningKey extends OkpKey {
 
   public void verify(Algorithm algorithm, byte[] message, byte[] signature)
       throws CborException, CoseException {
-    if (algorithm != Algorithm.SIGNING_ALGORITHM_EdDSA) {
+    if (algorithm != Algorithm.SIGNING_ALGORITHM_EDDSA) {
       throw new CoseException("Incompatible key type.");
     }
     verifyAlgorithmMatchesKey(algorithm);

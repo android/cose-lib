@@ -21,9 +21,9 @@ package com.google.cose.exceptions;
  * byte data into their respective COSE components.
  */
 public class CoseException extends Exception {
-  public static String MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE = "Missing key material information. "
-      + "Need either public or private key bytes.";
-  public static String UNSUPPORTED_CURVE_EXCEPTION_MESSAGE = "Unsupported Curve provided.";
+  public static final String MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE = "Missing key material "
+      + "information. Need either public or private key bytes.";
+  public static final String UNSUPPORTED_CURVE_EXCEPTION_MESSAGE = "Unsupported Curve provided.";
 
   public CoseException(final String message) {
     super(message);

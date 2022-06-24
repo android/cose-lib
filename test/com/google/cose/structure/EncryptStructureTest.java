@@ -25,6 +25,7 @@ import com.google.cose.structure.EncryptStructure.EncryptionContext;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
@@ -63,7 +64,7 @@ public class EncryptStructureTest {
     Map headers = new Map();
     headers.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
-    byte[] externalAad = "AadContent".getBytes();
+    byte[] externalAad = "AadContent".getBytes(StandardCharsets.UTF_8);
     EncryptStructure structure = new EncryptStructure(context, headers, externalAad);
     List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(3, cborArrayItems.size());

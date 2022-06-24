@@ -63,10 +63,13 @@ public class Headers {
 
   public static final int CURVE_OKP_X25519 = 4;
   public static final int CURVE_OKP_X448 = 5;
-  public static final int CURVE_OKP_Ed25519 = 6;
-  public static final int CURVE_OKP_Ed448 = 7;
+  public static final int CURVE_OKP_ED25519 = 6;
+  public static final int CURVE_OKP_ED448 = 7;
 
   public static final int ECDH_EPHEMERAL_KEY = -1;
   public static final int ECDH_STATIC_KEY = -2;
   public static final int ECDH_STATIC_KEY_ID = -3;
+
+  // Avoiding instantiation of the class
+  private Headers() {}
 }

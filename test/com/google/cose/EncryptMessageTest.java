@@ -57,7 +57,7 @@ public class EncryptMessageTest {
     Assert.assertEquals(0, r.getProtectedHeaders().getKeys().size());
 
     Map headers = r.getUnprotectedHeaders();
-    Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
+    Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID_BYTES),
         headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
     Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId(),
         headers.get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
@@ -76,7 +76,7 @@ public class EncryptMessageTest {
     unprotectedRecipientHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId());
     unprotectedRecipientHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
-        new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
+        new ByteString(TestUtilities.SHARED_KEY_ID_BYTES));
     Recipient r = Recipient.builder()
         .withProtectedHeaders(new Map())
         .withUnprotectedHeaders(unprotectedRecipientHeaders)
@@ -141,16 +141,26 @@ public class EncryptMessageTest {
     }
   }
 
-  @Test(expected = CoseException.class)
-  public void testDecodeFailureWithEmptyRecipients() throws CborException, CoseException {
+  @Test
+  public void testDecodeFailureWithEmptyRecipients() throws CborException {
     String cborString = "8443A10101A1054C02D1F7E6F26C43D4868D87CEF680";
-    EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CborException.class)
-  public void testByteParsingFailure() throws CborException, CoseException {
+  @Test
+  public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CborException e) {
+      // pass
+    }
   }
 }

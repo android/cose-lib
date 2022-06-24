@@ -20,7 +20,7 @@ import java.nio.charset.StandardCharsets;
 
 public class TestUtilities {
   public static final byte[] CONTENT_BYTES = "This is the content.".getBytes(StandardCharsets.UTF_8);
-  public static final String SHARED_KEY_ID = "our-secret";
+  public static final byte[] SHARED_KEY_ID_BYTES = "our-secret".getBytes(StandardCharsets.UTF_8);
   public static final byte[] KEYID_BYTES =
       "meriadoc.brandybuck@buckland.example".getBytes(StandardCharsets.UTF_8);
 
@@ -45,4 +45,7 @@ public class TestUtilities {
     }
     return new String(hexChars);
   }
+
+  // Avoid instantiation of utility class.
+  private TestUtilities() {}
 }

@@ -92,8 +92,10 @@ public final class MacKey extends CoseKey {
     @Override
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
-        if (operation != Headers.KEY_OPERATIONS_MAC_CREATE && operation != Headers.KEY_OPERATIONS_MAC_VERIFY)
+        if (operation != Headers.KEY_OPERATIONS_MAC_CREATE
+            && operation != Headers.KEY_OPERATIONS_MAC_VERIFY) {
           throw new CoseException("Mac key only supports CreateMac or VerifyMac operations.");
+        }
       }
       return super.withOperations(operations);
     }

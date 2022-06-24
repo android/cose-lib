@@ -116,21 +116,29 @@ public class SignMessageTest {
         TestUtilities.bytesToHexString(message.serialize()));
   }
 
-  @Test(expected = CoseException.class)
-  public void testBuilderAllFieldsMissing() throws CoseException {
-    SignMessage.builder().build();
-    Assert.fail();
+  @Test
+  public void testBuilderAllFieldsMissing() {
+    try {
+      SignMessage.builder().build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testBuilderSignatureMissing() throws CoseException {
-    SignMessage.builder()
+  @Test
+  public void testBuilderSignatureMissing() {
+    SignMessage.Builder builder = SignMessage.builder()
         .withMessage(TestUtilities.CONTENT_BYTES)
         .withProtectedHeaders(new Map())
         .withUnprotectedHeaders(new Map())
-        .withSignatures()
-        .build();
-    Assert.fail();
+        .withSignatures();
+    try {
+      builder.build();
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
   @Test
@@ -161,16 +169,26 @@ public class SignMessageTest {
     }
   }
 
-  @Test(expected = CborException.class)
-  public void testByteParsingFailure() throws CborException, CoseException {
+  @Test
+  public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CborException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testDecodeFailureWithEmptySignatures() throws CborException, CoseException {
+  @Test
+  public void testDecodeFailureWithEmptySignatures() throws CborException {
     String cborString = "8440A0F680";
-    SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      SignMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 }

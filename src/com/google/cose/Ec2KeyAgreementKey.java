@@ -53,6 +53,7 @@ public final class Ec2KeyAgreementKey extends Ec2Key {
       return new Ec2KeyAgreementKey(compile());
     }
 
+    @Override
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
         if (operation != Headers.KEY_OPERATIONS_WRAP_KEY) {

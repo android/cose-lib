@@ -115,11 +115,16 @@ public class MacKeyTest {
     }
   }
 
-  @Test(expected = CoseException.class)
-  public void testEmptySecretByteArray() throws CborException, CoseException {
+  @Test
+  public void testEmptySecretByteArray() throws CborException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
   @Test
