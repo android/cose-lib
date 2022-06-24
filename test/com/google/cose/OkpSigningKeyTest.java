@@ -48,7 +48,7 @@ public class OkpSigningKeyTest {
         new UnsignedInteger(Headers.KEY_TYPE_OKP));
     map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID), new ByteString(keyId));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE),
-        new UnsignedInteger(Headers.CURVE_OKP_Ed25519));
+        new UnsignedInteger(Headers.CURVE_OKP_ED25519));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(X_BYTES));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(D_BYTES));
 
@@ -63,7 +63,7 @@ public class OkpSigningKeyTest {
     final OkpSigningKey rebuiltKey = OkpSigningKey.parse(keyWithConstructor.serialize());
 
     Assert.assertEquals(Headers.KEY_TYPE_OKP, rebuiltKey.getKeyType());
-    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_Ed25519),
+    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_ED25519),
         rebuiltKey.labels.get(Headers.KEY_PARAMETER_CURVE));
     Assert.assertEquals(new ByteString(X_BYTES), rebuiltKey.labels.get(Headers.KEY_PARAMETER_X));
     Assert.assertEquals(new ByteString(D_BYTES), rebuiltKey.labels.get(Headers.KEY_PARAMETER_D));
@@ -78,7 +78,7 @@ public class OkpSigningKeyTest {
         + "21A68F707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
     final OkpSigningKey sKey = OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
     Assert.assertEquals(Headers.KEY_TYPE_OKP, sKey.getKeyType());
-    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_Ed25519),
+    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_ED25519),
         sKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
     Assert.assertEquals(new ByteString(X_BYTES), sKey.getLabels().get(Headers.KEY_PARAMETER_X));
     Assert.assertEquals(new ByteString(D_BYTES), sKey.getLabels().get(Headers.KEY_PARAMETER_D));
@@ -144,31 +144,51 @@ public class OkpSigningKeyTest {
     builder.build();
   }
 
-  @Test(expected = CoseException.class)
-  public void testEc2KeyParsingInOkpSigningKey() throws CborException, CoseException {
+  @Test
+  public void testEc2KeyParsingInOkpSigningKey() throws CborException {
     String cborString = "A4010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
         + "4B624343167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
-    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testOkpKeyParsingWithIncorrectCurve() throws CborException, CoseException {
+  @Test
+  public void testOkpKeyParsingWithIncorrectCurve() throws CborException {
     String cborString = "A401012002215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testEmptyPrivateKeyBytes() throws CborException, CoseException {
+  @Test
+  public void testEmptyPrivateKeyBytes() throws CborException {
     String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2340";
-    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testEmptyPublicKeyBytes() throws CborException, CoseException {
+  @Test
+  public void testEmptyPublicKeyBytes() throws CborException {
     String cborString = "A40101200621402358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BA"
         + "C031CAE7F60";
-    OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 }

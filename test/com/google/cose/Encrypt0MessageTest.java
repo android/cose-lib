@@ -94,10 +94,15 @@ public class Encrypt0MessageTest {
     }
   }
 
-  @Test(expected = CborException.class)
-  public void testByteParsingFailure() throws CborException, CoseException {
+  @Test
+  public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    Encrypt0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      Encrypt0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CborException e) {
+      // pass
+    }
   }
 }

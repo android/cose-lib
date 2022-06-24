@@ -375,7 +375,7 @@ public class CoseUtils {
       }
       baos.write(sBytes);
     } catch (IOException e) {
-      throw new CoseException("Error while converting signature to cose spec.");
+      throw new CoseException("Error while converting signature to cose spec.", e);
     }
     return baos.toByteArray();
   }
@@ -417,4 +417,7 @@ public class CoseUtils {
       throw new CoseException("Need message bytes to generate signature.");
     }
   }
+
+  // Avoiding instantiation of the class
+  private CoseUtils() {}
 }

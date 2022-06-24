@@ -54,10 +54,10 @@ public class PositiveIntegrationTests {
         .withXCoordinate(TestUtilities.hexStringToByteArray(publicKey))
         .withDParameter(TestUtilities.hexStringToByteArray(privateKey))
         .build();
-    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_EdDSA, TestUtilities.CONTENT_BYTES);
+    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_EDDSA, TestUtilities.CONTENT_BYTES);
     Assert.assertEquals(signatureVal, TestUtilities.bytesToHexString(signature));
 
-    key.verify(Algorithm.SIGNING_ALGORITHM_EdDSA, TestUtilities.CONTENT_BYTES, signature);
+    key.verify(Algorithm.SIGNING_ALGORITHM_EDDSA, TestUtilities.CONTENT_BYTES, signature);
   }
 
   @Test

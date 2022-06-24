@@ -31,7 +31,6 @@ import co.nstant.in.cbor.model.Special;
 import co.nstant.in.cbor.model.SpecialType;
 import co.nstant.in.cbor.model.UnicodeString;
 import co.nstant.in.cbor.model.UnsignedInteger;
-import com.google.cose.exceptions.CoseException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
@@ -184,4 +183,7 @@ public class CborUtils {
         && ((Special) item).getSpecialType() == SpecialType.SIMPLE_VALUE
         && ((SimpleValue) item).getSimpleValueType() == SimpleValueType.NULL;
   }
+
+  // Avoiding instantiation of the class
+  private CborUtils() {}
 }

@@ -53,7 +53,7 @@ public class MacMessageTest {
     Assert.assertEquals(0, r.getProtectedHeaders().getKeys().size());
     Assert.assertEquals(Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId(),
         r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM)));
-    Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()),
+    Assert.assertEquals(new ByteString(TestUtilities.SHARED_KEY_ID_BYTES),
         r.getUnprotectedHeaders().get(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID)));
     Assert.assertEquals("", TestUtilities.bytesToHexString(r.getCiphertext()));
   }
@@ -68,7 +68,7 @@ public class MacMessageTest {
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId());
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
-        new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
+        new ByteString(TestUtilities.SHARED_KEY_ID_BYTES));
 
     Recipient r = Recipient.builder()
         .withCiphertext(new byte[0])
@@ -103,7 +103,7 @@ public class MacMessageTest {
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.DIRECT_CEK_USAGE.getCoseAlgorithmId());
     unprotectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_KEY_ID),
-        new ByteString(TestUtilities.SHARED_KEY_ID.getBytes()));
+        new ByteString(TestUtilities.SHARED_KEY_ID_BYTES));
 
     Recipient r = Recipient.builder()
         .withCiphertext(new byte[0])
@@ -170,17 +170,27 @@ public class MacMessageTest {
     }
   }
 
-  @Test(expected = CborException.class)
-  public void testByteParsingFailure() throws CborException, CoseException {
+  @Test
+  public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    MacMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      MacMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CborException e) {
+      // pass
+    }
   }
 
-  @Test(expected = CoseException.class)
-  public void testDecodeFailureOnMissingArrayItems() throws CborException, CoseException {
+  @Test
+  public void testDecodeFailureOnMissingArrayItems() throws CborException {
     String cborString = "8443A10105A058202BDCC89F058216B8A208DDC6D8B54AA91F48BD63484986565105C9AD5"
         + "A6682F6818340A20125044A6F75722D73656372657440";
-    MacMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+    try {
+      MacMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
+      Assert.fail();
+    } catch (CoseException e) {
+      // pass
+    }
   }
 }
