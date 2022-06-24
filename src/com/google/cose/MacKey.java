@@ -17,19 +17,20 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.model.Array;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.MajorType;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
-import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /** Implements COSE_Key spec for MAC purposes. */
 public final class MacKey extends CoseKey {
@@ -56,69 +57,45 @@ public final class MacKey extends CoseKey {
     }
   }
 
-  static class Builder {
-    private String keyId;
-    private Algorithm algorithm;
-    private final Set<Integer> operations = new LinkedHashSet<>();
-    private byte[] baseIv;
+  public static MacKey parse(byte[] keyBytes) throws CborException, CoseException {
+    return decode(CborUtils.decode(keyBytes));
+  }
+
+  public static MacKey decode(DataItem cborKey) throws CborException, CoseException {
+    return new MacKey(cborKey);
+  }
+
+  public static class Builder extends CoseKey.Builder<Builder> {
     private byte[] secretKey;
 
-    public MacKey build() throws CoseException, CborException {
+    @Override
+    Builder self() {
+      return this;
+    }
+
+    @Override
+    void verifyKeyMaterialPresentAndComplete() throws CoseException {
       if (secretKey == null) {
         throw new CoseException("Missing key material information.");
       }
+    }
 
-      Map cborKey = new Map();
-      cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
-          new UnsignedInteger(Headers.KEY_TYPE_SYMMETRIC));
+    @Override
+    public MacKey build() throws CborException, CoseException {
+      withKeyType(Headers.KEY_TYPE_SYMMETRIC);
+      Map cborKey = compile();
 
-      if (keyId != null) {
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID),
-            new ByteString(keyId.getBytes()));
-      }
-      if (algorithm != null) {
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_ALGORITHM),
-            algorithm.getCoseAlgorithmId());
-      }
-      if (operations.size() != 0) {
-        Array keyOperations = new Array();
-        for (int operation: operations) {
-          keyOperations.add(new UnsignedInteger(operation));
-        }
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_OPERATIONS), keyOperations);
-      }
-      if (baseIv != null) {
-        cborKey.put(new UnsignedInteger(Headers.KEY_PARAMETER_BASE_IV),
-            new ByteString(baseIv));
-      }
-      if (secretKey != null) {
-        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_K), new ByteString(secretKey));
-      }
+      cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_K), new ByteString(secretKey));
       return new MacKey(cborKey);
     }
 
-    public Builder withKeyId(String keyId) {
-      this.keyId = keyId;
-      return this;
-    }
-
-    public Builder withAlgorithm(Algorithm algorithm) {
-      this.algorithm = algorithm;
-      return this;
-    }
-
+    @Override
     public Builder withOperations(Integer...operations) throws CoseException {
       for (int operation : operations) {
         if (operation != Headers.KEY_OPERATIONS_MAC_CREATE && operation != Headers.KEY_OPERATIONS_MAC_VERIFY)
           throw new CoseException("Mac key only supports CreateMac or VerifyMac operations.");
-        this.operations.add(operation);
       }
-      return this;
-    }
-
-    public Builder withBaseIv(byte[] baseIv) {
-      this.baseIv = baseIv;
-      return this;
+      return super.withOperations(operations);
     }
 
     public Builder withSecretKey(byte[] k) {
@@ -131,11 +108,23 @@ public final class MacKey extends CoseKey {
     return new Builder();
   }
 
-  public static MacKey parse(byte[] keyBytes) throws CborException, CoseException {
-    return decode(CborUtils.decode(keyBytes));
+  public byte[] createMac(byte[] message, Algorithm algorithm) throws CborException, CoseException {
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_MAC_CREATE);
+    try {
+      Mac mac = Mac.getInstance(algorithm.getJavaAlgorithmId());
+      mac.init(new SecretKeySpec(secretKey, ""));
+      mac.update(message);
+      return mac.doFinal();
+    } catch (NoSuchAlgorithmException | InvalidKeyException ex) {
+      throw new CoseException("Error while creating mac", ex);
+    }
   }
 
-  public static MacKey decode(DataItem cborKey) throws CborException, CoseException {
-    return new MacKey(cborKey);
+  public boolean verifyMac(byte[] message, Algorithm algorithm, final byte[] tag)
+      throws CborException, CoseException {
+    verifyAlgorithmMatchesKey(algorithm);
+    verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_MAC_VERIFY);
+    return Arrays.equals(createMac(message, algorithm), tag);
   }
 }

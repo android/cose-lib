@@ -36,7 +36,7 @@ public class Signature extends CoseMessage {
     this.signature = signature;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] signature;
@@ -72,11 +72,11 @@ public class Signature extends CoseMessage {
         .add(getUnprotectedHeaders()).add(signature).end().build().get(0);
   }
 
-  public static Signature deserialize(byte[] signature) throws CoseException, CborException {
+  public static Signature deserialize(byte[] signature) throws CborException, CoseException {
     return decode(CborUtils.decode(signature));
   }
 
-  public static Signature decode(DataItem cborMessage) throws CoseException, CborException {
+  public static Signature decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 3) {
       throw new CoseException("Error while decoding Signature. Expected 3 items,"

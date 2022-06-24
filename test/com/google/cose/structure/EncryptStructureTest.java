@@ -41,12 +41,9 @@ public class EncryptStructureTest {
     EncryptStructure structure = new EncryptStructure(context, headers, externalAad);
     List<DataItem> cborArrayItems = CborUtils.asArray(structure.encode()).getDataItems();
     Assert.assertEquals(3, cborArrayItems.size());
-    Assert.assertEquals(context.getContext(),
-        CborUtils.asUnicodeString(cborArrayItems.get(0)).toString());
-    Assert.assertEquals(0,
-        CborUtils.asByteString(cborArrayItems.get(1)).getBytes().length);
-    Assert.assertArrayEquals(externalAad,
-        CborUtils.asByteString(cborArrayItems.get(2)).getBytes());
+    Assert.assertEquals(context.getContext(), CborUtils.getString(cborArrayItems.get(0)));
+    Assert.assertEquals(0, CborUtils.getBytes(cborArrayItems.get(1)).length);
+    Assert.assertArrayEquals(externalAad, CborUtils.getBytes(cborArrayItems.get(2)));
   }
 
   @Test
@@ -68,13 +65,12 @@ public class EncryptStructureTest {
         Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
     byte[] externalAad = "AadContent".getBytes();
     EncryptStructure structure = new EncryptStructure(context, headers, externalAad);
-    List<DataItem> cborArrayItems = CborUtils.asArray(structure.encode()).getDataItems();
+    List<DataItem> cborArrayItems = CborUtils.getDataItems(structure.encode());
     Assert.assertEquals(3, cborArrayItems.size());
-    Assert.assertEquals(context.getContext(),
-        CborUtils.asUnicodeString(cborArrayItems.get(0)).toString());
+    Assert.assertEquals(context.getContext(), CborUtils.getString(cborArrayItems.get(0)));
     Assert.assertArrayEquals(TestUtilities.hexStringToByteArray("A10101"),
-        CborUtils.asByteString(cborArrayItems.get(1)).getBytes());
-    Assert.assertArrayEquals(externalAad, CborUtils.asByteString(cborArrayItems.get(2)).getBytes());
+        CborUtils.getBytes(cborArrayItems.get(1)));
+    Assert.assertArrayEquals(externalAad, CborUtils.getBytes(cborArrayItems.get(2)));
   }
 
   @Test

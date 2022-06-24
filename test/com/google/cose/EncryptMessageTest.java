@@ -32,7 +32,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class EncryptMessageTest {
   @Test
-  public void testDeserialize() throws CoseException, CborException {
+  public void testDeserialize() throws CborException, CoseException {
     EncryptMessage message = EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8443A10101A1054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1DD25867374B3581F2C"
           + "80039826350B97AE2300E42FD818340A20125044A6F75722D73656372657440"

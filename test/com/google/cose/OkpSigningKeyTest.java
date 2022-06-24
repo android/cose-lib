@@ -23,6 +23,7 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Headers;
+import java.nio.charset.StandardCharsets;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,64 +35,61 @@ import org.junit.runners.JUnit4;
  */
 @RunWith(JUnit4.class)
 public class OkpSigningKeyTest {
+  static final String X_VAL = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
+  private static final byte[] X_BYTES = TestUtilities.hexStringToByteArray(X_VAL);
+  static final String D_VAL = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
+  private static final byte[] D_BYTES = TestUtilities.hexStringToByteArray(D_VAL);
+
   @Test
   public void testRoundTrip() throws CborException, CoseException {
-    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
-    final byte[] x = TestUtilities.hexStringToByteArray(xVal);
-    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    final byte[] d = TestUtilities.hexStringToByteArray(dVal);
-    final String keyId = "11";
+    final byte[] keyId = "11".getBytes(StandardCharsets.UTF_8);
     final Map map = new Map();
     map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
         new UnsignedInteger(Headers.KEY_TYPE_OKP));
-    map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID), new ByteString(keyId.getBytes()));
+    map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_ID), new ByteString(keyId));
     map.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE),
         new UnsignedInteger(Headers.CURVE_OKP_Ed25519));
-    map.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(x));
-    map.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(d));
+    map.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(X_BYTES));
+    map.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(D_BYTES));
 
-    final OkpSigningKey key = new OkpSigningKey(map);
-    byte[] a = key.serialize();
+    final OkpSigningKey keyWithConstructor = new OkpSigningKey(map);
+    OkpSigningKey keyWithBuilder = OkpSigningKey.builder()
+        .withDParameter(D_BYTES)
+        .withXCoordinate(X_BYTES)
+        .withKeyId(keyId)
+        .build();
+    Assert.assertArrayEquals(keyWithConstructor.serialize(), keyWithBuilder.serialize());
 
-    final OkpSigningKey newKey = OkpSigningKey.parse(a);
+    final OkpSigningKey rebuiltKey = OkpSigningKey.parse(keyWithConstructor.serialize());
 
-    Assert.assertEquals(Headers.KEY_TYPE_OKP, newKey.getKeyType());
-    Assert.assertEquals(keyId, newKey.getKeyId());
+    Assert.assertEquals(Headers.KEY_TYPE_OKP, rebuiltKey.getKeyType());
     Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_Ed25519),
-        newKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
-    Assert.assertEquals(new ByteString(x), newKey.getLabels().get(Headers.KEY_PARAMETER_X));
-    Assert.assertEquals(new ByteString(d), newKey.getLabels().get(Headers.KEY_PARAMETER_D));
+        rebuiltKey.labels.get(Headers.KEY_PARAMETER_CURVE));
+    Assert.assertEquals(new ByteString(X_BYTES), rebuiltKey.labels.get(Headers.KEY_PARAMETER_X));
+    Assert.assertEquals(new ByteString(D_BYTES), rebuiltKey.labels.get(Headers.KEY_PARAMETER_D));
 
-    byte[] b = newKey.serialize();
-    Assert.assertEquals(a.length, b.length);
-    for (int i = 0; i < a.length; i++) {
-      Assert.assertEquals(a[i], b[i]);
-    }
+    Assert.assertArrayEquals(keyId, rebuiltKey.getKeyId());
+    Assert.assertArrayEquals(keyWithConstructor.serialize(), rebuiltKey.serialize());
   }
 
   @Test
   public void testConversion() throws CborException, CoseException {
     final String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
         + "21A68F707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
-    final ByteString x = new ByteString(TestUtilities.hexStringToByteArray(xVal));
-    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    final ByteString d = new ByteString(TestUtilities.hexStringToByteArray(dVal));
     final OkpSigningKey sKey = OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
     Assert.assertEquals(Headers.KEY_TYPE_OKP, sKey.getKeyType());
     Assert.assertEquals(new UnsignedInteger(Headers.CURVE_OKP_Ed25519),
         sKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
-    Assert.assertEquals(x, sKey.getLabels().get(Headers.KEY_PARAMETER_X));
-    Assert.assertEquals(d, sKey.getLabels().get(Headers.KEY_PARAMETER_D));
+    Assert.assertEquals(new ByteString(X_BYTES), sKey.getLabels().get(Headers.KEY_PARAMETER_X));
+    Assert.assertEquals(new ByteString(D_BYTES), sKey.getLabels().get(Headers.KEY_PARAMETER_D));
   }
 
   @Test
   public void testBuilder() throws CborException, CoseException {
     final String cborString = "A301012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
         + "21A68F707511A";
-    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
     OkpSigningKey key = OkpSigningKey.builder()
-        .withXCoordinate(TestUtilities.hexStringToByteArray(xVal))
+        .withXCoordinate(X_BYTES)
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(key.serialize()));
   }
@@ -100,58 +98,50 @@ public class OkpSigningKeyTest {
   public void testBuilderPrivateKey() throws CborException, CoseException {
     final String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF0"
         + "21A68F707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
-    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
     OkpSigningKey key = OkpSigningKey.builder()
-        .withXCoordinate(TestUtilities.hexStringToByteArray(xVal))
-        .withDParameter(TestUtilities.hexStringToByteArray(dVal))
+        .withXCoordinate(X_BYTES)
+        .withDParameter(D_BYTES)
         .build();
     Assert.assertEquals(cborString, TestUtilities.bytesToHexString(key.serialize()));
   }
 
   @Test
-  public void testBuilderFailureScenarios() throws CborException, CoseException {
-    final String xVal = "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A";
-    final String dVal = "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    final byte[] x = TestUtilities.hexStringToByteArray(xVal);
-    final byte[] d = TestUtilities.hexStringToByteArray(dVal);
-
+  public void testEmptyBuilderFailure() throws CborException {
+    OkpSigningKey.Builder builder = OkpSigningKey.builder();
     try {
-      OkpSigningKey.builder().build();
-      Assert.fail();
+      builder.build();
+      Assert.fail("Expected failure when building on empty builder.");
     } catch (CoseException e) {
       // pass
     }
+  }
 
-    // Missing x should pass
-    try {
-      OkpSigningKey.builder()
-          .withDParameter(d)
-          .build();
-    } catch (CoseException e) {
-      Assert.fail();
-    }
+  @Test
+  public void testBuilderPassOnMissingX() throws CborException, CoseException {
+    OkpSigningKey.builder()
+        .withDParameter(D_BYTES)
+        .build();
+  }
 
-    // so should missing d
-    try {
-      OkpSigningKey.builder()
-          .withXCoordinate(x)
-          .build();
-    } catch (CoseException e) {
-      Assert.fail();
-    }
+  @Test
+  public void testBuilderPassOnMissingD() throws CborException, CoseException {
+    OkpSigningKey.builder()
+        .withXCoordinate(X_BYTES)
+        .build();
+  }
 
-    // Wrong operation
+  @Test
+  public void testBuilderFailureOnWrongOperation() throws CborException, CoseException {
+    OkpSigningKey.Builder builder = OkpSigningKey.builder()
+        .withXCoordinate(X_BYTES)
+        .withDParameter(D_BYTES);
     try {
-      OkpSigningKey.builder()
-          .withXCoordinate(x)
-          .withDParameter(d)
-          .withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN)
-          .build();
-      Assert.fail();
+      builder.withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN);
+      Assert.fail("Expected builder to fail with wrong operations.");
     } catch (CoseException e) {
       // pass
     }
+    builder.build();
   }
 
   @Test(expected = CoseException.class)

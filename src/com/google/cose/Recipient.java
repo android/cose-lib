@@ -43,7 +43,7 @@ public class Recipient extends CoseMessage {
     this.recipients = recipients;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] ciphertext;
@@ -69,16 +69,18 @@ public class Recipient extends CoseMessage {
     }
 
     public Builder withCiphertext(byte[] ciphertext) {
-      this.ciphertext = Arrays.copyOf(ciphertext, ciphertext.length);
+      if (ciphertext != null) {
+        this.ciphertext = Arrays.copyOf(ciphertext, ciphertext.length);
+      }
       return this;
     }
 
     public Builder withRecipients(Recipient...recipients) {
-      return this.withRecipients(Arrays.asList(recipients));
+      return this.withRecipients(ImmutableList.copyOf(recipients));
     }
 
-    public Builder withRecipients(List<Recipient> recipients) {
-      this.recipients = ImmutableList.copyOf(recipients);
+    public Builder withRecipients(ImmutableList<Recipient> recipients) {
+      this.recipients = recipients;
       return this;
     }
   }
@@ -89,7 +91,7 @@ public class Recipient extends CoseMessage {
     arrayBuilder
         .add(CoseUtils.serializeProtectedHeaders(getProtectedHeaders()))
         .add(getUnprotectedHeaders())
-        .add(getCiphertext());
+        .add(ciphertext);
     if (recipients != null && !recipients.isEmpty()) {
       ArrayBuilder<ArrayBuilder<CborBuilder>> recipientArrayBuilder = arrayBuilder.addArray();
       for (Recipient recipient : recipients) {
@@ -100,11 +102,11 @@ public class Recipient extends CoseMessage {
     return arrayBuilder.end().build().get(0);
   }
 
-  public static Recipient deserialize(byte[] rawBytes) throws CoseException, CborException {
+  public static Recipient deserialize(byte[] rawBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(rawBytes));
   }
 
-  public static Recipient decode(DataItem cborMessage) throws CoseException, CborException {
+  public static Recipient decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageDataItems = CborUtils.asArray(cborMessage).getDataItems();
     List<Recipient> recipients = new ArrayList<>();
     if (messageDataItems.size() == 4) {
@@ -126,12 +128,12 @@ public class Recipient extends CoseMessage {
         .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageDataItems.get(0)))
         .withUnprotectedHeaders(CborUtils.asMap(messageDataItems.get(1)))
         .withCiphertext(CoseUtils.getBytesFromBstrOrNilValue(messageDataItems.get(2)))
-        .withRecipients(recipients)
+        .withRecipients(ImmutableList.copyOf(recipients))
         .build();
   }
 
   public byte[] getCiphertext() {
-    return Arrays.copyOf(ciphertext, ciphertext.length);
+    return ciphertext != null ? Arrays.copyOf(ciphertext, ciphertext.length) : null;
   }
 
   public ImmutableList<Recipient> getRecipients() {

@@ -31,12 +31,12 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class Sign1MessageTest {
   @Test
-  public void testDeserialize() throws CoseException, CborException {
+  public void testDeserialize() throws CborException, CoseException {
     Sign1Message message = Sign1Message.deserialize(TestUtilities.hexStringToByteArray("8441A0A20126044"
       + "2313154546869732069732074686520636F6E74656E742E584087DB0D2E5571843B78AC33ECB2830DF7B6E0A4"
       + "D5B7376DE336B23C591C90C425317E56127FBE04370097CE347087B233BF722B64072BEB4486BDA4031D27244F"
     ));
-    Assert.assertEquals(TestUtilities.CONTENT, new String(message.getMessage()));
+    Assert.assertArrayEquals(TestUtilities.CONTENT_BYTES, message.getMessage());
     Assert.assertEquals("87DB0D2E5571843B78AC33ECB2830DF7B6E0A4D5B7376DE336B23C591C90C425317E56127"
             + "FBE04370097CE347087B233BF722B64072BEB4486BDA4031D27244F",
         TestUtilities.bytesToHexString(message.getSignature()));
@@ -51,7 +51,7 @@ public class Sign1MessageTest {
   }
 
   @Test
-  public void testSerializeWithProtectedHeaders() throws CoseException, CborException {
+  public void testSerializeWithProtectedHeaders() throws CborException, CoseException {
     Map map = new Map();
     map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256.getCoseAlgorithmId());
@@ -61,7 +61,7 @@ public class Sign1MessageTest {
     Sign1Message message = Sign1Message.builder()
         .withProtectedHeaders(new Map())
         .withUnprotectedHeaders(map)
-        .withMessage(TestUtilities.CONTENT.getBytes())
+        .withMessage(TestUtilities.CONTENT_BYTES)
         .withSignature(TestUtilities.hexStringToByteArray("87DB0D2E5571843B78AC33ECB2830DF7B6E0A4D"
             + "5B7376DE336B23C591C90C425317E56127FBE04370097CE347087B233BF722B64072BEB4486BDA4031D"
             + "27244F"))

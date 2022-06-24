@@ -32,12 +32,12 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class SignMessageTest {
   @Test
-  public void testDeserialize() throws CoseException, CborException {
+  public void testDeserialize() throws CborException, CoseException {
     SignMessage message = SignMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8441A0A054546869732069732074686520636F6E74656E742E818343A10126A1044231315840E2AEAFD40D69D19"
           + "DFE6E52077C5D7FF4E408282CBEFB5D06CBF414AF2E19D982AC45AC98B8544C908B4507DE1E90B717C3D3"
           + "4816FE926A2B98F53AFD2FA0F30A"));
-    Assert.assertEquals(TestUtilities.CONTENT, new String(message.getMessage()));
+    Assert.assertArrayEquals(TestUtilities.CONTENT_BYTES, message.getMessage());
     Assert.assertEquals(0, message.getProtectedHeaders().getKeys().size());
     Assert.assertEquals(0, message.getUnprotectedHeaders().getKeys().size());
     Assert.assertEquals(1, message.getSignatures().size());
@@ -61,12 +61,12 @@ public class SignMessageTest {
   }
 
   @Test
-  public void testDeserializeWithEmptyProtectedHeaders() throws CoseException, CborException {
+  public void testDeserializeWithEmptyProtectedHeaders() throws CborException, CoseException {
     SignMessage message = SignMessage.deserialize(TestUtilities.hexStringToByteArray(
       "8440A054546869732069732074686520636F6E74656E742E818343A10126A1044231315840E2AEAFD40D69D19"
           + "DFE6E52077C5D7FF4E408282CBEFB5D06CBF414AF2E19D982AC45AC98B8544C908B4507DE1E90B717C3D3"
           + "4816FE926A2B98F53AFD2FA0F30A"));
-    Assert.assertEquals(TestUtilities.CONTENT, new String(message.getMessage()));
+    Assert.assertArrayEquals(TestUtilities.CONTENT_BYTES, message.getMessage());
     Assert.assertEquals(0, message.getProtectedHeaders().getKeys().size());
     Assert.assertEquals(0, message.getUnprotectedHeaders().getKeys().size());
     Assert.assertEquals(1, message.getSignatures().size());
@@ -86,7 +86,7 @@ public class SignMessageTest {
   }
 
   @Test
-  public void testSerializeWithProtectedHeaders() throws CoseException, CborException {
+  public void testSerializeWithProtectedHeaders() throws CborException, CoseException {
     Map protectedHeaders = new Map();
     protectedHeaders.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256.getCoseAlgorithmId());
@@ -106,7 +106,7 @@ public class SignMessageTest {
     SignMessage message = SignMessage.builder()
         .withProtectedHeaders(new Map())
         .withUnprotectedHeaders(new Map())
-        .withMessage(TestUtilities.CONTENT.getBytes())
+        .withMessage(TestUtilities.CONTENT_BYTES)
         .withSignatures(s)
         .build();
 
@@ -125,7 +125,7 @@ public class SignMessageTest {
   @Test(expected = CoseException.class)
   public void testBuilderSignatureMissing() throws CoseException {
     SignMessage.builder()
-        .withMessage(TestUtilities.CONTENT.getBytes())
+        .withMessage(TestUtilities.CONTENT_BYTES)
         .withProtectedHeaders(new Map())
         .withUnprotectedHeaders(new Map())
         .withSignatures()

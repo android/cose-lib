@@ -39,7 +39,7 @@ public class Sign1Message extends CoseMessage {
     this.signature = sign;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;
@@ -84,11 +84,11 @@ public class Sign1Message extends CoseMessage {
     return signArrayBuilder.end().build().get(0);
   }
 
-  public static Sign1Message deserialize(byte[] messageBytes) throws CoseException, CborException {
+  public static Sign1Message deserialize(byte[] messageBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static Sign1Message decode(DataItem cborMessage) throws CoseException, CborException {
+  public static Sign1Message decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 4) {
       throw new CoseException("Error while decoding Sign1Message. Expected 4 items,"

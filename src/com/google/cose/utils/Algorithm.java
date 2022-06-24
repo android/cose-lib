@@ -19,6 +19,9 @@ package com.google.cose.utils;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
+import com.google.common.collect.Maps;
+import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Algorithms to be used by cose library.
@@ -29,7 +32,6 @@ public enum Algorithm {
   SIGNING_ALGORITHM_ECDSA_SHA_384(-35, "SHA384withECDSA"),
   SIGNING_ALGORITHM_ECDSA_SHA_512(-36, "SHA512withECDSA"),
   SIGNING_ALGORITHM_EdDSA(-8, "NonewithEdDSA"),
-  MAC_ALGORITHM_HMAC_SHA_256_64(4, "HmacSHA256"),
   MAC_ALGORITHM_HMAC_SHA_256_256(5, "HmacSHA256"),
   MAC_ALGORITHM_HMAC_SHA_384_384(6, "HmacSHA384"),
   MAC_ALGORITHM_HMAC_SHA_512_512(7, "HmacSHA512"),
@@ -38,10 +40,15 @@ public enum Algorithm {
   ENCRYPTION_AES_192_GCM(2, "AES"),
   ENCRYPTION_AES_256_GCM(3, "AES"),
 
+  ECDH_ES_HKDF_256(-25, null),
   DIRECT_CEK_USAGE(-6, null);
 
   private final int coseAlgorithmId;
   private final String javaAlgorithmId;
+  private static final Map<Integer, Algorithm> reverseLookupMap = Maps.uniqueIndex(
+      Arrays.asList(Algorithm.values()),
+      x -> x.coseAlgorithmId
+  );
 
   Algorithm(int coseAlgorithmId, String javaAlgorithmId) {
     this.coseAlgorithmId = coseAlgorithmId;
@@ -57,5 +64,9 @@ public enum Algorithm {
       return new NegativeInteger(coseAlgorithmId);
     }
     return new UnsignedInteger(coseAlgorithmId);
+  }
+
+  public static Algorithm fromCoseAlgorithmId(int coseAlgorithmId) {
+    return reverseLookupMap.get(coseAlgorithmId);
   }
 }

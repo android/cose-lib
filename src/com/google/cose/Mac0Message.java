@@ -39,7 +39,7 @@ public class Mac0Message extends CoseMessage {
     this.tag = tag;
   }
 
-  static class Builder {
+  public static class Builder {
     private Map protectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;
@@ -84,11 +84,11 @@ public class Mac0Message extends CoseMessage {
     return macArrayBuilder.end().build().get(0);
   }
 
-  public static Mac0Message deserialize(byte[] messageBytes) throws CoseException, CborException {
+  public static Mac0Message deserialize(byte[] messageBytes) throws CborException, CoseException {
     return decode(CborUtils.decode(messageBytes));
   }
 
-  public static Mac0Message decode(DataItem cborMessage) throws CoseException, CborException {
+  public static Mac0Message decode(DataItem cborMessage) throws CborException, CoseException {
     List<DataItem> messageArray = CborUtils.asArray(cborMessage).getDataItems();
     if (messageArray.size() != 4) {
       throw new CoseException("Error while decoding Mac0Message. Expected 4 items,"

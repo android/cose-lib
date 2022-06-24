@@ -32,7 +32,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class Encrypt0MessageTest {
   @Test
-  public void testDeserialize() throws CoseException, CborException {
+  public void testDeserialize() throws CborException, CoseException {
     Encrypt0Message message = Encrypt0Message.deserialize(TestUtilities.hexStringToByteArray(
       "8343A10101A1054C02D1F7E6F26C43D4868D87CE582460973A94BB2898009EE52ECFD9AB1DD25867374B162E2C0"
           + "3568B41F57C3CC16F9166250B"
@@ -51,7 +51,7 @@ public class Encrypt0MessageTest {
   }
 
   @Test
-  public void testSerializeWithProtectedHeaders() throws CoseException, CborException {
+  public void testSerializeWithProtectedHeaders() throws CborException, CoseException {
     Map map = new Map();
     map.put(new UnsignedInteger(Headers.MESSAGE_HEADER_ALGORITHM),
         Algorithm.ENCRYPTION_AES_128_GCM.getCoseAlgorithmId());
