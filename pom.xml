@@ -133,9 +133,16 @@
             <source>1.8</source>
             <target>1.8</target>
             <compilerArgs>
-              <arg>-sourcepath</arg>
-              <arg>doesnotexist</arg>
+              <arg>-XDcompilePolicy=simple</arg>
+              <arg>-Xplugin:ErrorProne</arg>
             </compilerArgs>
+            <annotationProcessorPaths>
+              <path>
+                <groupId>com.google.errorprone</groupId>
+                <artifactId>error_prone_core</artifactId>
+                <version>2.14.0</version>
+              </path>
+            </annotationProcessorPaths>
           </configuration>
         </plugin>
         <plugin>
