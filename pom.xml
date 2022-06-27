@@ -119,6 +119,11 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
+          <!--
+            Target Java 8 so that we are roughly compatible with Android API level
+            26/Android 8. If we targeted a newer version, the identity credentials
+            code wouldn't be able to take a dependency on this library.
+          -->
           <source>8</source>
           <target>8</target>
         </configuration>
