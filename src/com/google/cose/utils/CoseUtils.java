@@ -291,6 +291,16 @@ public class CoseUtils {
     if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
+
+    if (algorithm == null) {
+      Integer alg = key.getAlgorithm();
+      if (alg == null) {
+        throw new CoseException(
+            "No algorithm provided, and Cosekey does not contain any algorithm either.");
+      }
+      algorithm = Algorithm.fromCoseAlgorithmId(alg.intValue());
+    }
+
     Map protectedHeaders = message.getProtectedHeaders();
     byte[] signedMessage = getMessageFromDetachedOrPayload(message.getMessage(), detachedContent);
 

@@ -99,6 +99,10 @@ public abstract class CoseKey {
     return keyId;
   }
 
+  public Integer getAlgorithm() {
+    return algorithm;
+  }
+
   public int getKeyType() {
     return keyType;
   }
