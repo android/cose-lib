@@ -291,6 +291,7 @@ public class CoseUtils {
     if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
+
     if (algorithm == null) {
       Integer alg = key.getAlgorithm();
       if (alg == null) {
