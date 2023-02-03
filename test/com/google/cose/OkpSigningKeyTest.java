@@ -22,6 +22,7 @@ import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.Headers;
 import java.nio.charset.StandardCharsets;
 import org.junit.Assert;
@@ -190,5 +191,13 @@ public class OkpSigningKeyTest {
     } catch (CoseException e) {
       // pass
     }
+  }
+
+  @Test
+  public void testOkpGeneratedKey_verificationWithSignature() throws CborException, CoseException {
+    OkpSigningKey okpKey = OkpSigningKey.generateKey();
+    byte[] signature = okpKey.sign(Algorithm.SIGNING_ALGORITHM_EDDSA, TestUtilities.CONTENT_BYTES);
+
+    okpKey.verify(Algorithm.SIGNING_ALGORITHM_EDDSA, TestUtilities.CONTENT_BYTES, signature);
   }
 }

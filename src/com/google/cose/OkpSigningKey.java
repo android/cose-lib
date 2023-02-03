@@ -99,6 +99,20 @@ public final class OkpSigningKey extends OkpKey {
     return new OkpSigningKey(cborKey);
   }
 
+  /** Generates a COSE formatted OKP signing key from scratch */
+  public static OkpSigningKey generateKey() throws CborException, CoseException {
+    KeyPair keyPair;
+    try {
+      keyPair = KeyPair.newKeyPair();
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Error while signing message.", e);
+    }
+    byte[] privateKey = keyPair.getPrivateKey();
+    byte[] publicKey = keyPair.getPublicKey();
+
+    return OkpSigningKey.builder().withXCoordinate(publicKey).withDParameter(privateKey).build();
+  }
+
   public static class Builder extends OkpKey.Builder<Builder> {
     private byte[] dParameter;
 
