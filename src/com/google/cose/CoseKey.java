@@ -128,6 +128,19 @@ public abstract class CoseKey {
     }
   }
 
+  public static CoseKey generateKey(Algorithm algorithm) throws CborException, CoseException {
+    switch (algorithm) {
+      case SIGNING_ALGORITHM_EDDSA:
+        return OkpSigningKey.generateKey();
+      case SIGNING_ALGORITHM_ECDSA_SHA_256:
+      case SIGNING_ALGORITHM_ECDSA_SHA_384:
+      case SIGNING_ALGORITHM_ECDSA_SHA_512:
+        return Ec2SigningKey.generateKey(algorithm);
+      default:
+        throw new CoseException("Unknown Key Type specified: " + algorithm.getJavaAlgorithmId());
+    }
+  }
+
   abstract static class Builder<T extends Builder<T>> {
     private int keyType;
     private byte[] keyId;

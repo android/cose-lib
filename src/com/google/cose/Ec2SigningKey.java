@@ -27,8 +27,10 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.math.BigInteger;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -36,6 +38,8 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECPoint;
 
 /** Implements EC2 COSE_Key spec for signing purposes. */
 public final class Ec2SigningKey extends Ec2Key {
@@ -112,6 +116,74 @@ public final class Ec2SigningKey extends Ec2Key {
   @Override
   public ECPublicKey getPublicKey() {
     return (ECPublicKey) this.keyPair.getPublic();
+  }
+
+  private static byte[] arrayFromBigNum(BigInteger n, int curveSize) {
+    byte[] rgb = new byte[(curveSize + 7) / 8];
+    byte[] rgb2 = n.toByteArray();
+    if (rgb.length == rgb2.length) {
+      return rgb2;
+    }
+    if (rgb2.length > rgb.length) {
+      System.arraycopy(rgb2, rgb2.length - rgb.length, rgb, 0, rgb.length);
+    } else {
+      System.arraycopy(rgb2, 0, rgb, rgb.length - rgb2.length, rgb2.length);
+    }
+    return rgb;
+  }
+
+  /** Generates a COSE formatted Ec2 signing key given a specific algorithm */
+  public static Ec2SigningKey generateKey(Algorithm algorithm) throws CborException, CoseException {
+    KeyPair keyPair;
+    int curveSize;
+    int header;
+    String curveName;
+
+    switch (algorithm) {
+      case SIGNING_ALGORITHM_ECDSA_SHA_256:
+        curveName = "secp256r1";
+        curveSize = 256;
+        header = Headers.CURVE_EC2_P256;
+        break;
+
+      case SIGNING_ALGORITHM_ECDSA_SHA_384:
+        curveName = "secp384r1";
+        curveSize = 384;
+        header = Headers.CURVE_EC2_P384;
+        break;
+
+      case SIGNING_ALGORITHM_ECDSA_SHA_512:
+        curveName = "secp521r1";
+        curveSize = 521;
+        header = Headers.CURVE_EC2_P521;
+        break;
+
+      default:
+        throw new CoseException("Unsupported algorithm curve: " + algorithm.getJavaAlgorithmId());
+    }
+    try {
+      ECGenParameterSpec paramSpec = new ECGenParameterSpec(curveName);
+      KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
+      gen.initialize(paramSpec);
+      keyPair = gen.genKeyPair();
+    } catch (NoSuchAlgorithmException e) {
+      throw new CoseException("No provider for algorithm: " + algorithm.getJavaAlgorithmId(), e);
+    } catch (InvalidAlgorithmParameterException e) {
+      throw new CoseException("The curve is not supported: " + algorithm.getJavaAlgorithmId(), e);
+    }
+
+    ECPoint pubPoint = ((ECPublicKey) keyPair.getPublic()).getW();
+    byte[] x = arrayFromBigNum(pubPoint.getAffineX(), curveSize);
+    byte[] y = arrayFromBigNum(pubPoint.getAffineY(), curveSize);
+    byte[] priEnc = keyPair.getPrivate().getEncoded();
+
+    return Ec2SigningKey.builder()
+        .withPrivateKeyRepresentation()
+        .withPkcs8EncodedBytes(priEnc)
+        .withXCoordinate(x)
+        .withYCoordinate(y)
+        .withCurve(header)
+        .build();
   }
 
   /** Implements builder for Ec2SigningKey. */
