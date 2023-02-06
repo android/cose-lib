@@ -118,43 +118,51 @@ public final class Ec2SigningKey extends Ec2Key {
     return (ECPublicKey) this.keyPair.getPublic();
   }
 
-  private static byte[] arrayFromBigNum(BigInteger n, int curveSize) {
-    byte[] rgb = new byte[(curveSize + 7) / 8];
-    byte[] rgb2 = n.toByteArray();
-    if (rgb.length == rgb2.length) {
-      return rgb2;
+  // Big endian: Do not reuse for little endian encodings
+  private static byte[] arrayFromBigNum(BigInteger num, int keySize)
+      throws IllegalArgumentException {
+    // Roundup arithmetic from bits to bytes.
+    byte[] keyBytes = new byte[(keySize + 7) / 8];
+    byte[] keyBytes2 = num.toByteArray();
+    if (keyBytes.length == keyBytes2.length) {
+      return keyBytes2;
     }
-    if (rgb2.length > rgb.length) {
-      System.arraycopy(rgb2, rgb2.length - rgb.length, rgb, 0, rgb.length);
+    if (keyBytes2.length > keyBytes.length) {
+      // There should be no more than one padding(0) byte, invalid key otherwise.
+      if (keyBytes2.length - keyBytes.length > 1 && keyBytes2[0] != 0) {
+        throw new IllegalArgumentException();
+      }
+      System.arraycopy(keyBytes2, keyBytes2.length - keyBytes.length, keyBytes, 0, keyBytes.length);
     } else {
-      System.arraycopy(rgb2, 0, rgb, rgb.length - rgb2.length, rgb2.length);
+      System.arraycopy(
+          keyBytes2, 0, keyBytes, keyBytes.length - keyBytes2.length, keyBytes2.length);
     }
-    return rgb;
+    return keyBytes;
   }
 
   /** Generates a COSE formatted Ec2 signing key given a specific algorithm */
   public static Ec2SigningKey generateKey(Algorithm algorithm) throws CborException, CoseException {
     KeyPair keyPair;
-    int curveSize;
+    int keySize;
     int header;
     String curveName;
 
     switch (algorithm) {
       case SIGNING_ALGORITHM_ECDSA_SHA_256:
         curveName = "secp256r1";
-        curveSize = 256;
+        keySize = 256;
         header = Headers.CURVE_EC2_P256;
         break;
 
       case SIGNING_ALGORITHM_ECDSA_SHA_384:
         curveName = "secp384r1";
-        curveSize = 384;
+        keySize = 384;
         header = Headers.CURVE_EC2_P384;
         break;
 
       case SIGNING_ALGORITHM_ECDSA_SHA_512:
         curveName = "secp521r1";
-        curveSize = 521;
+        keySize = 521;
         header = Headers.CURVE_EC2_P521;
         break;
 
@@ -166,24 +174,28 @@ public final class Ec2SigningKey extends Ec2Key {
       KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
       gen.initialize(paramSpec);
       keyPair = gen.genKeyPair();
+
+      ECPoint pubPoint = ((ECPublicKey) keyPair.getPublic()).getW();
+      byte[] x = arrayFromBigNum(pubPoint.getAffineX(), keySize);
+      byte[] y = arrayFromBigNum(pubPoint.getAffineY(), keySize);
+
+      byte[] privEncodedKey = keyPair.getPrivate().getEncoded();
+
+      return Ec2SigningKey.builder()
+          .withPrivateKeyRepresentation()
+          .withPkcs8EncodedBytes(privEncodedKey)
+          .withXCoordinate(x)
+          .withYCoordinate(y)
+          .withCurve(header)
+          .build();
     } catch (NoSuchAlgorithmException e) {
       throw new CoseException("No provider for algorithm: " + algorithm.getJavaAlgorithmId(), e);
     } catch (InvalidAlgorithmParameterException e) {
       throw new CoseException("The curve is not supported: " + algorithm.getJavaAlgorithmId(), e);
+    } catch (IllegalArgumentException e) {
+      throw new CoseException(
+          "Invalid Coordinates generated for: " + algorithm.getJavaAlgorithmId(), e);
     }
-
-    ECPoint pubPoint = ((ECPublicKey) keyPair.getPublic()).getW();
-    byte[] x = arrayFromBigNum(pubPoint.getAffineX(), curveSize);
-    byte[] y = arrayFromBigNum(pubPoint.getAffineY(), curveSize);
-    byte[] priEnc = keyPair.getPrivate().getEncoded();
-
-    return Ec2SigningKey.builder()
-        .withPrivateKeyRepresentation()
-        .withPkcs8EncodedBytes(priEnc)
-        .withXCoordinate(x)
-        .withYCoordinate(y)
-        .withCurve(header)
-        .build();
   }
 
   /** Implements builder for Ec2SigningKey. */
