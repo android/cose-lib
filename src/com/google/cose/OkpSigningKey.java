@@ -105,7 +105,7 @@ public final class OkpSigningKey extends OkpKey {
     try {
       keyPair = KeyPair.newKeyPair();
     } catch (GeneralSecurityException e) {
-      throw new CoseException("Error while signing message.", e);
+      throw new CoseException("Error while generating key pair: ", e);
     }
     byte[] privateKey = keyPair.getPrivateKey();
     byte[] publicKey = keyPair.getPublicKey();
