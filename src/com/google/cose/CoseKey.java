@@ -130,7 +130,7 @@ public abstract class CoseKey {
 
   public static CoseKey generateKey(Algorithm algorithm) throws CborException, CoseException {
     switch (algorithm) {
-      case SIGNING_ALGORITHM_ED25519:
+      case SIGNING_ALGORITHM_EDDSA:
         return OkpSigningKey.generateKey();
       case SIGNING_ALGORITHM_ECDSA_SHA_256:
       case SIGNING_ALGORITHM_ECDSA_SHA_384:
