@@ -140,7 +140,10 @@ public final class Ec2SigningKey extends Ec2Key {
     return keyBytes;
   }
 
-  /** Generates a COSE formatted Ec2 signing key given a specific algorithm */
+  /**
+   * Generates a COSE formatted Ec2 signing key given a specific algorithm. The selected hash
+   * algorithm is chosen based from section 6.2.1 of RFC 5656
+   */
   public static Ec2SigningKey generateKey(Algorithm algorithm) throws CborException, CoseException {
     KeyPair keyPair;
     int keySize;
