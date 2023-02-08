@@ -190,6 +190,7 @@ public final class Ec2SigningKey extends Ec2Key {
           .withXCoordinate(x)
           .withYCoordinate(y)
           .withCurve(header)
+          .withAlgorithm(algorithm)
           .build();
     } catch (NoSuchAlgorithmException e) {
       throw new CoseException("No provider for algorithm: " + algorithm.getJavaAlgorithmId(), e);
