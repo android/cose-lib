@@ -29,6 +29,7 @@ import com.google.crypto.tink.subtle.Ed25519Sign;
 import com.google.crypto.tink.subtle.Ed25519Sign.KeyPair;
 import com.google.crypto.tink.subtle.Ed25519Verify;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 
 /**
  * Implements OKP COSE_Key spec for signing purposes.
@@ -97,6 +98,11 @@ public final class OkpSigningKey extends OkpKey {
 
   public static OkpSigningKey decode(DataItem cborKey) throws CborException, CoseException {
     return new OkpSigningKey(cborKey);
+  }
+
+  @Override
+  public byte[] getPublicKeyBytes() {
+    return Arrays.copyOf(publicKeyBytes, publicKeyBytes.length);
   }
 
   /** Generates a COSE formatted OKP signing key from scratch */
