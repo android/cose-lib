@@ -116,7 +116,11 @@ public final class OkpSigningKey extends OkpKey {
     byte[] privateKey = keyPair.getPrivateKey();
     byte[] publicKey = keyPair.getPublicKey();
 
-    return OkpSigningKey.builder().withXCoordinate(publicKey).withDParameter(privateKey).build();
+    return OkpSigningKey.builder()
+        .withXCoordinate(publicKey)
+        .withDParameter(privateKey)
+        .withAlgorithm(Algorithm.SIGNING_ALGORITHM_EDDSA)
+        .build();
   }
 
   public static class Builder extends OkpKey.Builder<Builder> {
