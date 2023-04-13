@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
@@ -32,10 +34,12 @@ import org.junit.runners.JUnit4;
 public class Sign1MessageTest {
   @Test
   public void testDeserialize() throws CborException, CoseException {
-    Sign1Message message = Sign1Message.deserialize(TestUtilities.hexStringToByteArray("8441A0A20126044"
-      + "2313154546869732069732074686520636F6E74656E742E584087DB0D2E5571843B78AC33ECB2830DF7B6E0A4"
-      + "D5B7376DE336B23C591C90C425317E56127FBE04370097CE347087B233BF722B64072BEB4486BDA4031D27244F"
-    ));
+    Sign1Message message =
+        Sign1Message.deserialize(
+            TestUtilities.hexStringToByteArray(
+                "8441A0A20126044"
+                    + "2313154546869732069732074686520636F6E74656E742E584087DB0D2E5571843B78AC33ECB2830DF7B6E0A4"
+                    + "D5B7376DE336B23C591C90C425317E56127FBE04370097CE347087B233BF722B64072BEB4486BDA4031D27244F"));
     Assert.assertArrayEquals(TestUtilities.CONTENT_BYTES, message.getMessage());
     Assert.assertEquals("87DB0D2E5571843B78AC33ECB2830DF7B6E0A4D5B7376DE336B23C591C90C425317E56127"
             + "FBE04370097CE347087B233BF722B64072BEB4486BDA4031D27244F",
@@ -81,33 +85,21 @@ public class Sign1MessageTest {
 
   @Test
   public void testEmptyBuilderFailure() {
-    try {
-      Sign1Message.builder().build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(CoseException.class, () -> Sign1Message.builder().build());
   }
 
   @Test
   public void testMissingOptionBuilderFailure() {
-    try {
-      Sign1Message.builder().withProtectedHeaders(new Map()).build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class, () -> Sign1Message.builder().withProtectedHeaders(new Map()).build());
   }
 
   @Test
   public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    try {
-      Sign1Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CborException e) {
-      // pass
-    }
+    assertThrows(
+        CborException.class,
+        () -> Sign1Message.deserialize(TestUtilities.hexStringToByteArray(cborString)));
   }
 }

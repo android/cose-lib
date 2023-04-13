@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
@@ -109,12 +111,10 @@ public class OkpSigningKeyTest {
   @Test
   public void testEmptyBuilderFailure() throws CborException {
     OkpSigningKey.Builder builder = OkpSigningKey.builder();
-    try {
-      builder.build();
-      Assert.fail("Expected failure when building on empty builder.");
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        "Expected failure when building on empty builder.",
+        CoseException.class,
+        () -> builder.build());
   }
 
   @Test
@@ -136,12 +136,10 @@ public class OkpSigningKeyTest {
     OkpSigningKey.Builder builder = OkpSigningKey.builder()
         .withXCoordinate(X_BYTES)
         .withDParameter(D_BYTES);
-    try {
-      builder.withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN);
-      Assert.fail("Expected builder to fail with wrong operations.");
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        "Expected builder to fail with wrong operations.",
+        CoseException.class,
+        () -> builder.withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN));
     builder.build();
   }
 
@@ -149,48 +147,36 @@ public class OkpSigningKeyTest {
   public void testEc2KeyParsingInOkpSigningKey() throws CborException {
     String cborString = "A4010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
         + "4B624343167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
-    try {
-      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
   public void testOkpKeyParsingWithIncorrectCurve() throws CborException {
     String cborString = "A401012002215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    try {
-      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
   public void testEmptyPrivateKeyBytes() throws CborException {
     String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2340";
-    try {
-      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
   public void testEmptyPublicKeyBytes() throws CborException {
     String cborString = "A40101200621402358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BA"
         + "C031CAE7F60";
-    try {
-      OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> OkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
