@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
@@ -81,33 +83,21 @@ public class Sign1MessageTest {
 
   @Test
   public void testEmptyBuilderFailure() {
-    try {
-      Sign1Message.builder().build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(CoseException.class, () -> Sign1Message.builder().build());
   }
 
   @Test
   public void testMissingOptionBuilderFailure() {
-    try {
-      Sign1Message.builder().withProtectedHeaders(new Map()).build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class, () -> Sign1Message.builder().withProtectedHeaders(new Map()).build());
   }
 
   @Test
   public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    try {
-      Sign1Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CborException e) {
-      // pass
-    }
+    assertThrows(
+        CborException.class,
+        () -> Sign1Message.deserialize(TestUtilities.hexStringToByteArray(cborString)));
   }
 }

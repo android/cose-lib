@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
@@ -109,58 +111,42 @@ public class EncryptMessageTest {
 
   @Test
   public void testEmptyBuilderFailure() {
-    try {
-      EncryptMessage.builder().build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(CoseException.class, () -> EncryptMessage.builder().build());
   }
 
   @Test
   public void testMissingOptionBuilderFailure() {
-    try {
-      EncryptMessage.builder().withProtectedHeaders(new Map()).build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> EncryptMessage.builder().withProtectedHeaders(new Map()).build());
   }
 
   @Test
   public void testEmptyRecipientsBuilderFailure() {
-    try {
-      EncryptMessage.builder()
-          .withProtectedHeaders(new Map())
-          .withUnprotectedHeaders(new Map())
-          .withRecipients()
-          .build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () ->
+            EncryptMessage.builder()
+                .withProtectedHeaders(new Map())
+                .withUnprotectedHeaders(new Map())
+                .withRecipients()
+                .build());
   }
 
   @Test
   public void testDecodeFailureWithEmptyRecipients() throws CborException {
     String cborString = "8443A10101A1054C02D1F7E6F26C43D4868D87CEF680";
-    try {
-      EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
   public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    try {
-      EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CborException e) {
-      // pass
-    }
+    assertThrows(
+        CborException.class,
+        () -> EncryptMessage.deserialize(TestUtilities.hexStringToByteArray(cborString)));
   }
 }

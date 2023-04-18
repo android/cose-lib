@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.UnsignedInteger;
@@ -74,45 +76,30 @@ public class Mac0MessageTest {
 
   @Test
   public void testEmptyBuilderFailure() {
-    try {
-      Mac0Message.builder().build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(CoseException.class, () -> Mac0Message.builder().build());
   }
 
   @Test
   public void testMissingOptionBuilderFailure() {
-    try {
-      Mac0Message.builder().withProtectedHeaders(new Map()).build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class, () -> Mac0Message.builder().withProtectedHeaders(new Map()).build());
   }
 
   @Test
   public void testDecodeFailureOnMissingArrayItems() throws CborException {
     String cborString = "8343A10105A05820A1A848D3471F9D61EE49018D244C824772F223AD4F935293F1789FC3A"
         + "08D8C58";
-    try {
-      Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
   public void testByteParsingFailure() throws CoseException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    try {
-      Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CborException e) {
-      // pass
-    }
+    assertThrows(
+        CborException.class,
+        () -> Mac0Message.deserialize(TestUtilities.hexStringToByteArray(cborString)));
   }
 }

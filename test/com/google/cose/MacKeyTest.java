@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
@@ -88,43 +90,26 @@ public class MacKeyTest {
   public void testBuilderFailureScenarios() throws CborException {
     final String kVal = "65eda5a12577c2bae829437fe338701a10aaa375e1bb5b5de108de439c08551d";
     final byte[] secretKey = TestUtilities.hexStringToByteArray(kVal);
-    try {
-      MacKey.builder().build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
 
-    try {
-      MacKey.builder()
-          .withSecretKey(secretKey)
-          .withOperations(Headers.KEY_OPERATIONS_SIGN, Headers.KEY_OPERATIONS_MAC_CREATE)
-          .build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(CoseException.class, () -> MacKey.builder().build());
 
-    try {
-      MacKey.builder()
-          .withSecretKey(new byte[0])
-          .build();
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () ->
+            MacKey.builder()
+                .withSecretKey(secretKey)
+                .withOperations(Headers.KEY_OPERATIONS_SIGN, Headers.KEY_OPERATIONS_MAC_CREATE)
+                .build());
+
+    assertThrows(CoseException.class, () -> MacKey.builder().withSecretKey(new byte[0]).build());
   }
 
   @Test
   public void testEmptySecretByteArray() throws CborException {
     String cborString = "A301040258246D65726961646F632E6272616E64796275636B406275636B6C616E642E657"
         + "8616D706C652040";
-    try {
-      MacKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class, () -> MacKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test

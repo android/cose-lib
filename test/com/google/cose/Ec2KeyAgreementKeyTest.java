@@ -16,6 +16,8 @@
 
 package com.google.cose;
 
+import static org.junit.Assert.assertThrows;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.Map;
@@ -104,36 +106,28 @@ public class Ec2KeyAgreementKeyTest {
         .withCurve(Headers.CURVE_EC2_P256)
         .withXCoordinate(X_BYTES)
         .withYCoordinate(Y_BYTES);
-    try {
-      builder.withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN);
-      Assert.fail("Builder should fail on providing wrong operations.");
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        "Builder should fail on providing wrong operations.",
+        CoseException.class,
+        () -> builder.withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN));
   }
 
   @Test
   public void testOkpKeyParsingInEc2KeyAgreementKey() throws CborException {
     String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    try {
-      Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
   public void testEc2KeyParsingWithIncorrectCurve() throws CborException {
     String cborString = "A501022006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A22402358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";
-    try {
-      Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
-      Assert.fail();
-    } catch (CoseException e) {
-      // pass
-    }
+    assertThrows(
+        CoseException.class,
+        () -> Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
 
   @Test
