@@ -175,11 +175,11 @@ public class CoseUtils {
   }
 
   public static Map asProtectedHeadersMap(DataItem serialProtectedHeaders) throws CborException {
-    if (serialProtectedHeaders.getMajorType() != MajorType.BYTE_STRING) {
-      throw new CborException("Expected type BYTE_STRING, recieved "
-          + serialProtectedHeaders.getMajorType());
-    }
     byte[] protectedHeaderBytes = CborUtils.asByteString(serialProtectedHeaders).getBytes();
+    return asProtectedHeadersMap(protectedHeaderBytes);
+  }
+
+  public static Map asProtectedHeadersMap(byte[] protectedHeaderBytes) throws CborException {
     if (protectedHeaderBytes.length == 0) {
       return new Map();
     }

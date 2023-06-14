@@ -32,21 +32,34 @@ import java.util.List;
 public class Sign1Message extends CoseMessage {
   private final byte[] message;
   private final byte[] signature;
+  private final byte[] encodedProtectedHeaders;
 
-  Sign1Message(Map protectedHeaders, Map unprotectedHeaders, byte[] message, byte[] sign) {
+  Sign1Message(
+      Map protectedHeaders,
+      byte[] encodedProtectedHeaders,
+      Map unprotectedHeaders,
+      byte[] message,
+      byte[] sign) {
     super(protectedHeaders, unprotectedHeaders);
     this.message = message;
     this.signature = sign;
+    this.encodedProtectedHeaders = encodedProtectedHeaders;
   }
 
   public static class Builder {
     private Map protectedHeaders;
+    private byte[] encodedProtectedHeaders;
     private Map unprotectedHeaders;
     private byte[] message;
     private byte[] signature;
-    public Sign1Message build() throws CoseException {
+    public Sign1Message build() throws CoseException, CborException {
       if ((protectedHeaders != null) && (unprotectedHeaders != null) && (signature != null)) {
-        return new Sign1Message(protectedHeaders, unprotectedHeaders, message, signature);
+        if (encodedProtectedHeaders == null) {
+          encodedProtectedHeaders = CoseUtils.serializeProtectedHeaders(protectedHeaders);
+        }
+
+        return new Sign1Message(
+            protectedHeaders, encodedProtectedHeaders, unprotectedHeaders, message, signature);
       } else {
         throw new CoseException("Some fields are missing.");
       }
@@ -54,6 +67,11 @@ public class Sign1Message extends CoseMessage {
 
     public Builder withProtectedHeaders(Map protectedHeaders) {
       this.protectedHeaders = protectedHeaders;
+      return this;
+    }
+
+    public Builder withEncodedProtectedHeaders(byte[] encodedProtectedHeaders) {
+      this.encodedProtectedHeaders = encodedProtectedHeaders;
       return this;
     }
 
@@ -77,7 +95,7 @@ public class Sign1Message extends CoseMessage {
   public DataItem encode() throws CborException {
     ArrayBuilder<CborBuilder> signArrayBuilder = new CborBuilder().addArray();
     signArrayBuilder
-        .add(CoseUtils.serializeProtectedHeaders(getProtectedHeaders()))
+        .add(encodedProtectedHeaders)
         .add(getUnprotectedHeaders())
         .add(message)
         .add(signature);
@@ -94,8 +112,12 @@ public class Sign1Message extends CoseMessage {
       throw new CoseException("Error while decoding Sign1Message. Expected 4 items,"
           + "received " + messageArray.size());
     }
+
+    byte[] protectedHeaderBytes = CborUtils.asByteString(messageArray.get(0)).getBytes();
+
     return Sign1Message.builder()
-        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(messageArray.get(0)))
+        .withProtectedHeaders(CoseUtils.asProtectedHeadersMap(protectedHeaderBytes))
+        .withEncodedProtectedHeaders(protectedHeaderBytes)
         .withUnprotectedHeaders(CborUtils.asMap(messageArray.get(1)))
         .withMessage(CoseUtils.getBytesFromBstrOrNilValue(messageArray.get(2)))
         .withSignature(CborUtils.asByteString(messageArray.get(3)).getBytes())
