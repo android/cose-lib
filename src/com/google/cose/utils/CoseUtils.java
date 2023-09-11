@@ -258,15 +258,15 @@ public class CoseUtils {
   }
 
   public static Sign1Message generateCoseSign1(CoseKey key, Map protectedHeaders,
-      Map unprotectedHeaders, byte[] payloadMessage, byte[] detachedContent, Algorithm algorithm)
-      throws CborException, CoseException {
+      Map unprotectedHeaders, byte[] payloadMessage, byte[] detachedContent, byte[] externalAad,
+      Algorithm algorithm) throws CborException, CoseException {
     if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
     byte[] message = getMessageFromDetachedOrPayload(payloadMessage, detachedContent);
 
     byte[] toBeSigned = new SignStructure(
-        SignatureContext.SIGNATURE1, protectedHeaders, null, new byte[0], message
+        SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad, message
     ).serialize();
 
     byte[] signature;
@@ -287,7 +287,8 @@ public class CoseUtils {
   }
 
   public static void verifyCoseSign1Message(CoseKey key, Sign1Message message,
-      byte[] detachedContent, Algorithm algorithm) throws CborException, CoseException {
+      byte[] detachedContent, byte[] externalAad, Algorithm algorithm)
+      throws CborException, CoseException {
     if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
@@ -305,7 +306,7 @@ public class CoseUtils {
     byte[] signedMessage = getMessageFromDetachedOrPayload(message.getMessage(), detachedContent);
 
     byte[] encodedStructure = new SignStructure(
-        SignatureContext.SIGNATURE1, protectedHeaders, null, new byte[0], signedMessage
+        SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad, signedMessage
     ).serialize();
     if (key instanceof Ec2SigningKey) {
       byte[] signature = signatureCoseToDer(message.getSignature());
