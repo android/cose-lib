@@ -123,6 +123,7 @@ public class OkpSigningKeyTest {
         .withDParameter(D_BYTES)
         .build();
     Assert.assertArrayEquals(signingKey.getPublicKeyBytes(), X_BYTES);
+    Assert.assertNotNull(signingKey.getPublicKey());
   }
 
   @Test

@@ -9,6 +9,7 @@ import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import java.security.PublicKey;
 import java.util.Arrays;
 
 /**
@@ -56,7 +57,10 @@ public abstract class OkpKey extends CoseKey {
     return publicFromPrivate(privateKeyBytes);
   }
 
+
   protected abstract byte[] publicFromPrivate(byte[] privateKey) throws CoseException;
+
+  public abstract PublicKey getPublicKey() throws CoseException;
 
   public byte[] getPublicKeyBytes() {
     return Arrays.copyOf(publicKeyBytes, publicKeyBytes.length);

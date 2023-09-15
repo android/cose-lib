@@ -26,6 +26,11 @@ import com.google.crypto.tink.subtle.Ed25519Sign;
 import com.google.crypto.tink.subtle.Ed25519Sign.KeyPair;
 import com.google.crypto.tink.subtle.Ed25519Verify;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 
 /**
@@ -63,6 +68,30 @@ public final class OkpSigningKey extends OkpKey {
       return KeyPair.newKeyPairFromSeed(privateKeyBytes).getPublicKey();
     } catch (GeneralSecurityException e) {
       throw new CoseException("Error while generating public key from private key bytes.", e);
+    }
+  }
+
+  @Override
+  public PublicKey getPublicKey() throws CoseException {
+    try {
+      // Ed25519 support was added to Java 15 with the EdECPublicKeySpec but, in order to support
+      // older versions, generate the key with an x509EncodedKeySpec with an encoded key as
+      // defined in rfc8410. Before Java 15, a security provider that can handle Ed25519 keys needs
+      // to be installed.
+      byte[] subjectPublicKeyInfo =
+          new byte[] {
+            0x30, 0x2a,                    // SEQUENCE
+            0x30, 0x05,                    //   SEQUENCE
+            0x06, 0x03, 0x2b, 0x65, 0x70,  //     OBJECT IDENTIFIER { 1 3 101 112 }
+            0x03, 0x21, 0x00,              //     BIT STRING
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+          };
+      System.arraycopy(publicKeyBytes, 0, subjectPublicKeyInfo, 12, 32);
+      X509EncodedKeySpec x509EncodedKeySpec = new X509EncodedKeySpec(subjectPublicKeyInfo);
+      return KeyFactory.getInstance("Ed25519").generatePublic(x509EncodedKeySpec);
+    } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+      throw new CoseException("Failed to generate Ed25519 public key", e);
     }
   }
 

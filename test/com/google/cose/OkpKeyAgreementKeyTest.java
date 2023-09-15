@@ -120,6 +120,7 @@ public class OkpKeyAgreementKeyTest {
         .withDParameter(D_BYTES)
         .build();
     Assert.assertArrayEquals(keyAgreementKey.getPublicKeyBytes(), X_BYTES);
+    Assert.assertNotNull(keyAgreementKey.getPublicKey());
   }
 
   @Test
