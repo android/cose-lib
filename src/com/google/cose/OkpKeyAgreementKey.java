@@ -46,7 +46,6 @@ public final class OkpKeyAgreementKey extends OkpKey {
   public OkpKeyAgreementKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
-    int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
     if (curve != Headers.CURVE_OKP_X25519) {
       throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
     }
@@ -80,6 +79,15 @@ public final class OkpKeyAgreementKey extends OkpKey {
       return KeyFactory.getInstance("X25519").generatePublic(spec);
     } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
       throw new CoseException("Failed to generate X25519 public key", e);
+    }
+  }
+
+  @Override
+  public OkpKeyAgreementKey getPublic() throws CborException, CoseException {
+    if (privateKeyBytes == null) {
+      return this;
+    } else {
+      return builder().copyFrom(this).withDParameter(null).build();
     }
   }
 

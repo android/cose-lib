@@ -18,6 +18,7 @@ import java.util.Arrays;
 public abstract class OkpKey extends CoseKey {
   protected byte[] privateKeyBytes;
   protected byte[] publicKeyBytes;
+  protected int curve;
 
   OkpKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
@@ -30,6 +31,7 @@ public abstract class OkpKey extends CoseKey {
   void populateKeyFromCbor() throws CborException, CoseException {
     privateKeyBytes = getPrivateKeyBytesFromCbor();
     publicKeyBytes = getPublicKeyBytesFromCbor();
+    curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
   }
 
   private byte[] getPrivateKeyBytesFromCbor() throws CborException, CoseException {
@@ -62,8 +64,14 @@ public abstract class OkpKey extends CoseKey {
 
   public abstract PublicKey getPublicKey() throws CoseException;
 
+  public abstract OkpKey getPublic() throws CborException, CoseException;
+
   public byte[] getPublicKeyBytes() {
     return Arrays.copyOf(publicKeyBytes, publicKeyBytes.length);
+  }
+
+  public int getCurve() {
+    return curve;
   }
 
   /** Recursive builder to build out the Ec2 key and its subclasses. */
@@ -100,6 +108,13 @@ public abstract class OkpKey extends CoseKey {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(xCor));
       }
       return cborKey;
+    }
+
+    public T copyFrom(OkpKey key) {
+      curve = key.curve;
+      dParameter = key.privateKeyBytes;
+      xCor = key.publicKeyBytes;
+      return super.copyFrom(key);
     }
 
     public T withCurve(int curve) throws CoseException {

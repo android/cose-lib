@@ -143,6 +143,20 @@ public class OkpKeyAgreementKeyTest {
   }
 
   @Test
+  public void testGetPublic() throws CborException, CoseException {
+    OkpKeyAgreementKey.Builder builder = OkpKeyAgreementKey.builder()
+        .withXCoordinate(X_BYTES);
+    OkpKeyAgreementKey publicKey = builder.build();
+    OkpKeyAgreementKey keyPairPublic = builder
+        .withDParameter(D_BYTES)
+        .build()
+        .getPublic();
+
+    Assert.assertSame(publicKey.getPublic(), publicKey);
+    Assert.assertArrayEquals(keyPairPublic.serialize(), publicKey.serialize());
+  }
+
+  @Test
   public void testEc2KeyParsingInOkpKeyAgreementKey() throws CborException {
     String cborString = "A4010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
         + "4B624343167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";

@@ -139,6 +139,22 @@ public class Ec2KeyAgreementKeyTest {
   }
 
   @Test
+  public void testGetPublic() throws CborException, CoseException {
+    Ec2KeyAgreementKey.Builder builder = Ec2KeyAgreementKey.builder()
+        .withCurve(Headers.CURVE_EC2_P256)
+        .withXCoordinate(X_BYTES)
+        .withYCoordinate(Y_BYTES);
+    Ec2KeyAgreementKey publicKey = builder.build();
+    Ec2KeyAgreementKey keyPairPublic = builder
+        .withPrivateKeyRepresentation().withDParameter(D_BYTES)
+        .build()
+        .getPublic();
+
+    Assert.assertSame(publicKey.getPublic(), publicKey);
+    Assert.assertArrayEquals(keyPairPublic.serialize(), publicKey.serialize());
+  }
+
+  @Test
   public void testOkpKeyParsingInEc2KeyAgreementKey() throws CborException {
     String cborString = "A401012006215820D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F"
         + "707511A2358209D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60";

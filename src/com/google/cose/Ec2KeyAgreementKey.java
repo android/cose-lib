@@ -43,6 +43,15 @@ public final class Ec2KeyAgreementKey extends Ec2Key {
     return new Ec2KeyAgreementKey(cborKey);
   }
 
+  @Override
+  public Ec2KeyAgreementKey getPublic() throws CborException, CoseException {
+    if (keyPair.getPrivate() == null) {
+      return this;
+    } else {
+      return builder().copyFrom(this).withPrivateKeyRepresentation().withDParameter(null).build();
+    }
+  }
+
   /** Generates a COSE formatted Ec2 key agreement key given a specific algorithm and curve. */
   public static Ec2KeyAgreementKey generateKey(Algorithm algorithm, int curve)
       throws CborException, CoseException {

@@ -41,7 +41,6 @@ public final class OkpSigningKey extends OkpKey {
   public OkpSigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
-    int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
     if (curve != Headers.CURVE_OKP_ED25519) {
       throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
     }
@@ -92,6 +91,15 @@ public final class OkpSigningKey extends OkpKey {
       return KeyFactory.getInstance("Ed25519").generatePublic(x509EncodedKeySpec);
     } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
       throw new CoseException("Failed to generate Ed25519 public key", e);
+    }
+  }
+
+  @Override
+  public OkpSigningKey getPublic() throws CborException, CoseException {
+    if (privateKeyBytes == null ) {
+      return this;
+    } else {
+      return builder().copyFrom(this).withDParameter(null).build();
     }
   }
 

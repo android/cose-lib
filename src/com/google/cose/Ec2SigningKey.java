@@ -50,6 +50,15 @@ public final class Ec2SigningKey extends Ec2Key {
     return new Ec2SigningKey(cborKey);
   }
 
+  @Override
+  public Ec2SigningKey getPublic() throws CborException, CoseException {
+    if (keyPair.getPrivate() == null) {
+      return this;
+    } else {
+      return builder().copyFrom(this).withPrivateKeyRepresentation().withDParameter(null).build();
+    }
+  }
+
   /**
    * Generates a COSE formatted Ec2 signing key given a specific algorithm. The selected key size is
    * chosen based on section 6.2.1 of RFC 5656

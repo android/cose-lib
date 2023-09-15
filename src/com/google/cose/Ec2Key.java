@@ -27,6 +27,7 @@ import java.security.spec.ECPoint;
 public abstract class Ec2Key extends CoseKey {
   private static final int SIGN_POSITIVE = 1;
 
+  private int curve;
   protected KeyPair keyPair;
 
   Ec2Key(DataItem cborKey) throws CborException, CoseException {
@@ -40,7 +41,7 @@ public abstract class Ec2Key extends CoseKey {
     }
 
     // Get curve information
-    int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
+    curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
 
     // Get private key.
     final ECPrivateKey privateKey;
@@ -82,6 +83,12 @@ public abstract class Ec2Key extends CoseKey {
 
   public ECPublicKey getPublicKey() {
     return (ECPublicKey) this.keyPair.getPublic();
+  }
+
+  public abstract Ec2Key getPublic() throws CborException, CoseException;
+
+  public int getCurve() {
+    return curve;
   }
 
   void verifyAlgorithmAllowedByKey(Algorithm algorithm) throws CborException, CoseException {
@@ -173,6 +180,30 @@ public abstract class Ec2Key extends CoseKey {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_Y), new ByteString(yCor));
       }
       return cborKey;
+    }
+
+    public T copyFrom(Ec2Key key) {
+      curve = key.curve;
+      int keySize;
+      switch (curve) {
+        case Headers.CURVE_EC2_P256:
+          keySize = 256;
+          break;
+        case Headers.CURVE_EC2_P384:
+          keySize = 384;
+          break;
+        case Headers.CURVE_EC2_P521:
+          keySize = 521;
+          break;
+        default:
+          throw new AssertionError();
+      }
+      ECPublicKey pubKey = (ECPublicKey) key.keyPair.getPublic();
+      ECPrivateKey privKey = (ECPrivateKey) key.keyPair.getPrivate();
+      xCor = arrayFromBigNum(pubKey.getW().getAffineX(), keySize);
+      yCor = arrayFromBigNum(pubKey.getW().getAffineY(), keySize);
+      dParameter = (privKey == null) ? null : privKey.getS().toByteArray();
+      return super.copyFrom(key);
     }
 
     public T withCurve(int curve) throws CoseException {
