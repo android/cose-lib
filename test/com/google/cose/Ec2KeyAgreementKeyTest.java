@@ -31,7 +31,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 /**
- * Test class for testing {@link Ec2SigningKey}. Key values used in test cases are referenced from
+ * Test class for testing {@link Ec2KeyAgreement}. Key values used in test cases are referenced from
  * https://datatracker.ietf.org/doc/html/rfc8152#appendix-C
  */
 @RunWith(JUnit4.class)
@@ -59,7 +59,7 @@ public class Ec2KeyAgreementKeyTest {
     final Ec2KeyAgreementKey key = new Ec2KeyAgreementKey(map);
     byte[] a = key.serialize();
 
-    final Ec2SigningKey newKey = Ec2SigningKey.parse(a);
+    final Ec2KeyAgreement newKey = Ec2KeyAgreement.parse(a);
 
     Assert.assertEquals(Headers.KEY_TYPE_EC2, newKey.getKeyType());
     Assert.assertArrayEquals(keyId, newKey.getKeyId());
@@ -101,6 +101,31 @@ public class Ec2KeyAgreementKeyTest {
   }
 
   @Test
+  public void testBuilderPkcs8EncodedPrivateKey() throws CborException, CoseException {
+    String cborString = "A30102200123582100DE7B7261710775352BF3C0669FA54229D9B2998EE9265645A3AF9F2"
+        + "FEFC93968";
+    byte[] d = TestUtilities.hexStringToByteArray("3041020100301306072A8648CE3D020106082A8648CE3D0"
+      + "30107042730250201010420DE7B7261710775352BF3C0669FA54229D9B2998EE9265645A3AF9F2FEFC93968");
+    Ec2KeyAgreementKey keyAgreementKey = Ec2KeyAgreementKey.builder()
+        .withCurve(Headers.CURVE_EC2_P256)
+        .withPrivateKeyRepresentation().withPkcs8EncodedBytes(d)
+        .build();
+    Assert.assertEquals(cborString, TestUtilities.bytesToHexString(keyAgreementKey.serialize()));
+    Assert.assertNotNull(keyAgreementKey.getPublicKey());
+  }
+
+  @Test
+  public void testBuilderDParamPrivateKey() throws CborException, CoseException {
+    String cborString = "A3010220012358205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B6243"
+        + "43167FE";
+    Ec2KeyAgreementKey keyAgreementKey = Ec2KeyAgreementKey.builder()
+        .withCurve(Headers.CURVE_EC2_P256)
+        .withPrivateKeyRepresentation().withDParameter(D_BYTES)
+        .build();
+    Assert.assertEquals(cborString, TestUtilities.bytesToHexString(keyAgreementKey.serialize()));
+  }
+
+  @Test
   public void testBuilderFailureWrongOperation() throws CoseException {
     Ec2KeyAgreementKey.Builder builder = Ec2KeyAgreementKey.builder()
         .withCurve(Headers.CURVE_EC2_P256)
@@ -128,13 +153,5 @@ public class Ec2KeyAgreementKeyTest {
     assertThrows(
         CoseException.class,
         () -> Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString)));
-  }
-
-  @Test
-  public void testKeyParsingWithNullDParameterBytes() throws CborException, CoseException {
-    String cborString = "A5010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA444B6243"
-        + "43167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC672340";
-    // Even if D parameter is null, we don't care since it will not be used for key agreement.
-    Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString));
   }
 }

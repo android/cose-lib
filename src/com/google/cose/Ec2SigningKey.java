@@ -17,14 +17,10 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
-import co.nstant.in.cbor.model.Map;
-import co.nstant.in.cbor.model.NegativeInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
-import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -33,20 +29,14 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 
 /** Implements EC2 COSE_Key spec for signing purposes. */
 public final class Ec2SigningKey extends Ec2Key {
-  private static final int SIGN_POSITIVE = 1;
-
-  private KeyPair keyPair;
-
   public Ec2SigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
@@ -57,53 +47,6 @@ public final class Ec2SigningKey extends Ec2Key {
     }
   }
 
-  @Override
-  void populateKeyFromCbor() throws CborException, CoseException {
-    if (getKeyType() != Headers.KEY_TYPE_EC2) {
-      throw new CoseException("Expecting EC2 key (type 2), found type " + getKeyType());
-    }
-
-    // Get curve information
-    int curve = CborUtils.asInteger(labels.get(Headers.KEY_PARAMETER_CURVE));
-
-    // Get private key.
-    final ECPrivateKey privateKey;
-    if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
-      byte[] key = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
-      if (key.length == 0) {
-        throw new CoseException("Cannot decode private key. Missing coordinate information.");
-      }
-      privateKey = CoseUtils.getEc2PrivateKeyFromInteger(curve, new BigInteger(SIGN_POSITIVE, key));
-    } else {
-      privateKey = null;
-    }
-
-    if (!labels.containsKey(Headers.KEY_PARAMETER_X)) {
-      if (privateKey == null) {
-        throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
-      } else {
-        keyPair = new KeyPair(
-            CoseUtils.getEc2PublicKeyFromPrivateKey(curve, privateKey),
-            privateKey);
-        return;
-      }
-    }
-
-    final ByteString xCor = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X));
-    // Get the public key for EC2 key.
-    // We should not have a case where x is provided but y is not.
-    if (!labels.containsKey(Headers.KEY_PARAMETER_Y)) {
-      throw new IllegalStateException("X coordinate provided but Y coordinate is missing.");
-    }
-    final ByteString yCor = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_Y));
-    final PublicKey publicKey = CoseUtils.getEc2PublicKeyFromCoordinates(
-        curve,
-        new BigInteger(SIGN_POSITIVE, xCor.getBytes()),
-        new BigInteger(SIGN_POSITIVE, yCor.getBytes())
-    );
-    keyPair = new KeyPair(publicKey, privateKey);
-  }
-
   public static Ec2SigningKey parse(byte[] keyBytes) throws CborException, CoseException {
     DataItem dataItem = CborUtils.decode(keyBytes);
     return decode(dataItem);
@@ -111,11 +54,6 @@ public final class Ec2SigningKey extends Ec2Key {
 
   public static Ec2SigningKey decode(DataItem cborKey) throws CborException, CoseException {
     return new Ec2SigningKey(cborKey);
-  }
-
-  @Override
-  public ECPublicKey getPublicKey() {
-    return (ECPublicKey) this.keyPair.getPublic();
   }
 
   // Big endian: Do not reuse for little endian encodings
@@ -204,25 +142,14 @@ public final class Ec2SigningKey extends Ec2Key {
 
   /** Implements builder for Ec2SigningKey. */
   public static class Builder extends Ec2Key.Builder<Builder> {
-    private byte[] dParameter;
-
     @Override
     public Builder self() {
       return this;
     }
 
     @Override
-    boolean isKeyMaterialPresent() {
-      return dParameter != null || super.isKeyMaterialPresent();
-    }
-
-    @Override
     public Ec2SigningKey build() throws CborException, CoseException {
-      Map cborKey = compile();
-      if (dParameter != null) {
-        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dParameter));
-      }
-      return new Ec2SigningKey(cborKey);
+      return new Ec2SigningKey(compile());
     }
 
     @Override
@@ -234,43 +161,6 @@ public final class Ec2SigningKey extends Ec2Key {
         }
       }
       return super.withOperations(operations);
-    }
-
-    public PrivateKeyRepresentationBuilder withPrivateKeyRepresentation() {
-      return new PrivateKeyRepresentationBuilder(this);
-    }
-
-    /**
-     * Helper class to get the raw bytes out of the encoded private keys.
-     */
-    public static class PrivateKeyRepresentationBuilder {
-      Builder builder;
-
-      PrivateKeyRepresentationBuilder(Builder builder) {
-        this.builder = builder;
-      }
-
-      public Builder withPrivateKey(ECPrivateKey privateKey) {
-        builder.dParameter = privateKey.getS().toByteArray();
-        return builder;
-      }
-
-      public Builder withPkcs8EncodedBytes(byte[] keyBytes) throws CoseException {
-        ECPrivateKey key = CoseUtils.getEc2PrivateKeyFromEncodedKeyBytes(keyBytes);
-        builder.dParameter = key.getS().toByteArray();
-        return builder;
-      }
-
-      /**
-       * This function expects the BigInteger byte array of the private key. This is typically the
-       * multiplier in the EC2 private key which can generate EC2 public key from generator point.
-       * @param rawBytes byte array representation of BigInteger
-       * @return {@link Builder}
-       */
-      public Builder withDParameter(byte[] rawBytes) {
-        builder.dParameter = rawBytes;
-        return builder;
-      }
     }
   }
 
