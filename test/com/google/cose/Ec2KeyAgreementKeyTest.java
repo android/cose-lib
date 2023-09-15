@@ -24,6 +24,7 @@ import co.nstant.in.cbor.model.Map;
 import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.Headers;
 import org.junit.Assert;
 import org.junit.Test;
@@ -59,7 +60,7 @@ public class Ec2KeyAgreementKeyTest {
     final Ec2KeyAgreementKey key = new Ec2KeyAgreementKey(map);
     byte[] a = key.serialize();
 
-    final Ec2KeyAgreement newKey = Ec2KeyAgreement.parse(a);
+    final Ec2KeyAgreementKey newKey = Ec2KeyAgreementKey.parse(a);
 
     Assert.assertEquals(Headers.KEY_TYPE_EC2, newKey.getKeyType());
     Assert.assertArrayEquals(keyId, newKey.getKeyId());
@@ -153,5 +154,30 @@ public class Ec2KeyAgreementKeyTest {
     assertThrows(
         CoseException.class,
         () -> Ec2KeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString)));
+  }
+
+  @Test
+  public void testP256Ec2GeneratedKey() throws CborException, CoseException {
+    Ec2KeyAgreementKey p256Key =
+        Ec2KeyAgreementKey.generateKey(Algorithm.ECDH_ES_HKDF_256, Headers.CURVE_EC2_P256);
+  }
+
+  @Test
+  public void testP384Ec2GeneratedKey() throws CborException, CoseException {
+    Ec2KeyAgreementKey p384Key =
+        Ec2KeyAgreementKey.generateKey(Algorithm.ECDH_ES_HKDF_256, Headers.CURVE_EC2_P384);
+  }
+
+  @Test
+  public void testP521Ec2GeneratedKey() throws CborException, CoseException {
+    Ec2KeyAgreementKey p521Key =
+        Ec2KeyAgreementKey.generateKey(Algorithm.ECDH_ES_HKDF_256, Headers.CURVE_EC2_P521);
+  }
+
+  @Test
+  public void testEc2GeneratedKey_invalidInput() throws CborException {
+    assertThrows(
+        CoseException.class,
+        () -> Ec2KeyAgreementKey.generateKey(Algorithm.MAC_ALGORITHM_HMAC_SHA_256_256));
   }
 }

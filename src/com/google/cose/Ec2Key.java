@@ -12,10 +12,14 @@ import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.PublicKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECPoint;
 
 /**
  * Abstract class for generic Ec2 key
@@ -102,6 +106,28 @@ public abstract class Ec2Key extends CoseKey {
     }
   }
 
+  // Big endian: Do not reuse for little endian encodings
+  private static byte[] arrayFromBigNum(BigInteger num, int keySize)
+      throws IllegalArgumentException {
+    // Roundup arithmetic from bits to bytes.
+    byte[] keyBytes = new byte[(keySize + 7) / 8];
+    byte[] keyBytes2 = num.toByteArray();
+    if (keyBytes.length == keyBytes2.length) {
+      return keyBytes2;
+    }
+    if (keyBytes2.length > keyBytes.length) {
+      // There should be no more than one padding(0) byte, invalid key otherwise.
+      if (keyBytes2.length - keyBytes.length > 1 && keyBytes2[0] != 0) {
+        throw new IllegalArgumentException();
+      }
+      System.arraycopy(keyBytes2, keyBytes2.length - keyBytes.length, keyBytes, 0, keyBytes.length);
+    } else {
+      System.arraycopy(
+          keyBytes2, 0, keyBytes, keyBytes.length - keyBytes2.length, keyBytes2.length);
+    }
+    return keyBytes;
+  }
+
   /** Recursive builder to build out the Ec2 key and its subclasses. */
   abstract static class Builder<T extends Builder<T>> extends CoseKey.Builder<T> {
     private Integer curve = null;
@@ -165,6 +191,47 @@ public abstract class Ec2Key extends CoseKey {
     public T withYCoordinate(byte[] yCor) {
       this.yCor = yCor;
       return self();
+    }
+
+    public T withGeneratedKeyPair(int curve) throws CoseException {
+      KeyPair keyPair;
+      int keySize;
+      String curveName;
+
+      switch (curve) {
+        case Headers.CURVE_EC2_P256:
+          curveName = "secp256r1";
+          keySize = 256;
+          break;
+
+        case Headers.CURVE_EC2_P384:
+          curveName = "secp384r1";
+          keySize = 384;
+          break;
+
+        case Headers.CURVE_EC2_P521:
+          curveName = "secp521r1";
+          keySize = 521;
+          break;
+
+        default:
+          throw new CoseException("Unsupported curve: " + curve);
+      }
+      try {
+        ECGenParameterSpec paramSpec = new ECGenParameterSpec(curveName);
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
+        gen.initialize(paramSpec);
+        keyPair = gen.genKeyPair();
+        ECPoint pubPoint = ((ECPublicKey) keyPair.getPublic()).getW();
+
+        return withPrivateKeyRepresentation()
+            .withPkcs8EncodedBytes(keyPair.getPrivate().getEncoded())
+            .withXCoordinate(arrayFromBigNum(pubPoint.getAffineX(), keySize))
+            .withYCoordinate(arrayFromBigNum(pubPoint.getAffineY(), keySize))
+            .withCurve(curve);
+      } catch (GeneralSecurityException e) {
+        throw new CoseException("Failed to generate key pari for  curve: " + curve, e);
+      }
     }
 
     public PrivateKeyRepresentationBuilder<T> withPrivateKeyRepresentation() {
