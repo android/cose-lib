@@ -21,6 +21,7 @@ import co.nstant.in.cbor.model.DataItem;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import org.bouncycastle.math.ec.rfc7748.X25519;
 
 /**
  * Implements OKP COSE_Key spec for key wrapping purposes.
@@ -47,6 +48,13 @@ public final class OkpKeyAgreementKey extends OkpKey {
 
   public static OkpKeyAgreementKey decode(DataItem cborKey) throws CborException, CoseException {
     return new OkpKeyAgreementKey(cborKey);
+  }
+
+  @Override
+  protected byte[] publicFromPrivate(byte[] privateKey) throws CoseException {
+    byte[] r = new byte[32];
+    X25519.generatePublicKey(privateKeyBytes, 0, r, 0);
+    return r;
   }
 
   public static class Builder extends OkpKey.Builder<Builder> {

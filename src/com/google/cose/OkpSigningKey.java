@@ -17,10 +17,7 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
-import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
-import co.nstant.in.cbor.model.Map;
-import co.nstant.in.cbor.model.NegativeInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
@@ -36,9 +33,6 @@ import java.util.Arrays;
  * Currently only supports Ed25519 curve.
  */
 public final class OkpSigningKey extends OkpKey {
-  private byte[] privateKeyBytes;
-  private byte[] publicKeyBytes;
-
   public OkpSigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
 
@@ -47,47 +41,10 @@ public final class OkpSigningKey extends OkpKey {
       throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
     }
 
-    populateKeyFromCbor();
-
     if ((operations != null)
         && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
         && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
       throw new CoseException("Signing key requires either sign or verify operation.");
-    }
-  }
-
-  @Override
-  void populateKeyFromCbor() throws CborException, CoseException {
-    privateKeyBytes = getPrivateKeyBytesFromCbor();
-    publicKeyBytes = getPublicKeyBytesFromCbor();
-  }
-
-  private byte[] getPrivateKeyBytesFromCbor() throws CborException, CoseException {
-    if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
-      byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
-      if (keyMaterial.length == 0) {
-        throw new CoseException("Could not decode private key. Expected key material.");
-      }
-      return keyMaterial;
-    }
-    return null;
-  }
-
-  private byte[] getPublicKeyBytesFromCbor() throws CborException, CoseException {
-    if (labels.containsKey(Headers.KEY_PARAMETER_X)) {
-      byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X)).getBytes();
-      if (keyMaterial.length == 0) {
-        throw new CoseException("Could not decode public key. Expected key material.");
-      }
-      return keyMaterial;
-    }
-    if (privateKeyBytes == null) {
-      throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
-    }
-    try {
-      return KeyPair.newKeyPairFromSeed(privateKeyBytes).getPublicKey();
-    } catch (GeneralSecurityException e) {
-      throw new CoseException("Error while generating public key from private key bytes.", e);
     }
   }
 
@@ -101,8 +58,12 @@ public final class OkpSigningKey extends OkpKey {
   }
 
   @Override
-  public byte[] getPublicKeyBytes() {
-    return Arrays.copyOf(publicKeyBytes, publicKeyBytes.length);
+  protected byte[] publicFromPrivate(byte[] privateKey) throws CoseException {
+    try {
+      return KeyPair.newKeyPairFromSeed(privateKeyBytes).getPublicKey();
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Error while generating public key from private key bytes.", e);
+    }
   }
 
   /** Generates a COSE formatted OKP signing key from scratch */
@@ -124,16 +85,9 @@ public final class OkpSigningKey extends OkpKey {
   }
 
   public static class Builder extends OkpKey.Builder<Builder> {
-    private byte[] dParameter;
-
     @Override
     public Builder self() {
       return this;
-    }
-
-    @Override
-    boolean isKeyMaterialPresent() {
-      return (dParameter != null && dParameter.length != 0) || super.isKeyMaterialPresent();
     }
 
     @Override
@@ -150,17 +104,7 @@ public final class OkpSigningKey extends OkpKey {
     @Override
     public OkpSigningKey build() throws CborException, CoseException {
       withCurve(Headers.CURVE_OKP_ED25519);
-
-      Map cborKey = compile();
-      if (dParameter != null) {
-        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dParameter));
-      }
-      return new OkpSigningKey(cborKey);
-    }
-
-    public Builder withDParameter(byte[] dParam) {
-      this.dParameter = dParam;
-      return this;
+      return new OkpSigningKey(compile());
     }
   }
 

@@ -15,7 +15,8 @@ import java.util.Arrays;
  * Abstract class for generic Ec2 key
  */
 public abstract class OkpKey extends CoseKey {
-  private byte[] publicKeyBytes;
+  protected byte[] privateKeyBytes;
+  protected byte[] publicKeyBytes;
 
   OkpKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
@@ -26,16 +27,36 @@ public abstract class OkpKey extends CoseKey {
   }
 
   void populateKeyFromCbor() throws CborException, CoseException {
+    privateKeyBytes = getPrivateKeyBytesFromCbor();
+    publicKeyBytes = getPublicKeyBytesFromCbor();
+  }
+
+  private byte[] getPrivateKeyBytesFromCbor() throws CborException, CoseException {
+    if (labels.containsKey(Headers.KEY_PARAMETER_D)) {
+      byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_D)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Could not decode private key. Expected key material.");
+      }
+      return keyMaterial;
+    }
+    return null;
+  }
+
+  private byte[] getPublicKeyBytesFromCbor() throws CborException, CoseException {
     if (labels.containsKey(Headers.KEY_PARAMETER_X)) {
       byte[] keyMaterial = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_X)).getBytes();
       if (keyMaterial.length == 0) {
         throw new CoseException("Could not decode public key. Expected key material.");
       }
-      publicKeyBytes = keyMaterial;
-    } else {
+      return keyMaterial;
+    }
+    if (privateKeyBytes == null) {
       throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
     }
+    return publicFromPrivate(privateKeyBytes);
   }
+
+  protected abstract byte[] publicFromPrivate(byte[] privateKey) throws CoseException;
 
   public byte[] getPublicKeyBytes() {
     return Arrays.copyOf(publicKeyBytes, publicKeyBytes.length);
@@ -44,10 +65,11 @@ public abstract class OkpKey extends CoseKey {
   /** Recursive builder to build out the Ec2 key and its subclasses. */
   abstract static class Builder<T extends Builder<T>> extends CoseKey.Builder<T> {
     private Integer curve = null;
+    private byte[] dParameter;
     private byte[] xCor;
 
     boolean isKeyMaterialPresent() {
-      return xCor != null && xCor.length != 0;
+      return (dParameter != null && dParameter.length != 0) || (xCor != null && xCor.length != 0);
     }
 
     @Override
@@ -67,6 +89,9 @@ public abstract class OkpKey extends CoseKey {
       Map cborKey = super.compile();
 
       cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE), new UnsignedInteger(curve));
+      if (dParameter != null) {
+        cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_D), new ByteString(dParameter));
+      }
       if (xCor != null && xCor.length != 0) {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_X), new ByteString(xCor));
       }
@@ -78,6 +103,11 @@ public abstract class OkpKey extends CoseKey {
         throw new CoseException(CoseException.UNSUPPORTED_CURVE_EXCEPTION_MESSAGE);
       }
       this.curve = curve;
+      return self();
+    }
+
+    public T withDParameter(byte[] dParam) {
+      this.dParameter = dParam;
       return self();
     }
 
