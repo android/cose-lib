@@ -68,18 +68,8 @@ public final class OkpSigningKey extends OkpKey {
 
   /** Generates a COSE formatted OKP signing key from scratch */
   public static OkpSigningKey generateKey() throws CborException, CoseException {
-    KeyPair keyPair;
-    try {
-      keyPair = KeyPair.newKeyPair();
-    } catch (GeneralSecurityException e) {
-      throw new CoseException("Error while generating key pair: ", e);
-    }
-    byte[] privateKey = keyPair.getPrivateKey();
-    byte[] publicKey = keyPair.getPublicKey();
-
-    return OkpSigningKey.builder()
-        .withXCoordinate(publicKey)
-        .withDParameter(privateKey)
+    return builder()
+        .withGeneratedKeyPair(Headers.CURVE_OKP_ED25519)
         .withAlgorithm(Algorithm.SIGNING_ALGORITHM_EDDSA)
         .build();
   }
@@ -105,6 +95,20 @@ public final class OkpSigningKey extends OkpKey {
     public OkpSigningKey build() throws CborException, CoseException {
       withCurve(Headers.CURVE_OKP_ED25519);
       return new OkpSigningKey(compile());
+    }
+
+    public Builder withGeneratedKeyPair(int curve) throws CoseException {
+      if (curve != Headers.CURVE_OKP_ED25519) {
+        throw new CoseException("Unsupported curve: " + curve);
+      }
+      KeyPair keyPair;
+      try {
+        keyPair = KeyPair.newKeyPair();
+      } catch (GeneralSecurityException e) {
+        throw new CoseException("Error while generating key pair: ", e);
+      }
+      return withDParameter(keyPair.getPrivateKey())
+          .withXCoordinate(keyPair.getPublicKey());
     }
   }
 

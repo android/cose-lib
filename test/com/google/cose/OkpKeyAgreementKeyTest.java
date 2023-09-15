@@ -176,4 +176,10 @@ public class OkpKeyAgreementKeyTest {
         CoseException.class,
         () -> OkpKeyAgreementKey.parse(TestUtilities.hexStringToByteArray(cborString)));
   }
+
+  @Test
+  public void testOkpGeneratedKey_verificationWithSignature() throws CborException, CoseException {
+    OkpKeyAgreementKey okpKey =
+        OkpKeyAgreementKey.generateKey(Algorithm.ECDH_ES_HKDF_256, Headers.CURVE_OKP_X25519);
+  }
 }

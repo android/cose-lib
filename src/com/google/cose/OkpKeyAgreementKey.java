@@ -19,8 +19,15 @@ package com.google.cose;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.interfaces.XECPrivateKey;
+import java.security.interfaces.XECPublicKey;
+import java.security.spec.XECPublicKeySpec;
 import org.bouncycastle.math.ec.rfc7748.X25519;
 
 /**
@@ -57,6 +64,21 @@ public final class OkpKeyAgreementKey extends OkpKey {
     return r;
   }
 
+  /** Generates a COSE formatted OKP key agreement key from scratch. */
+  public static OkpKeyAgreementKey generateKey(Algorithm algorithm, int curve)
+      throws CborException, CoseException {
+    switch (algorithm) {
+      case ECDH_ES_HKDF_256:
+      return builder()
+          .withGeneratedKeyPair(curve)
+          .withAlgorithm(algorithm)
+          .build();
+
+      default:
+        throw new CoseException("Unsupported algorithm: " + algorithm.getJavaAlgorithmId());
+    }
+  }
+
   public static class Builder extends OkpKey.Builder<Builder> {
     @Override
     public Builder self() {
@@ -78,6 +100,19 @@ public final class OkpKeyAgreementKey extends OkpKey {
         }
       }
       return super.withOperations(operations);
+    }
+
+    public Builder withGeneratedKeyPair(int curve) throws CoseException {
+      if (curve != Headers.CURVE_OKP_X25519) {
+        throw new CoseException("Unsupported curve: " + curve);
+      }
+      try {
+        KeyPair keyPair = KeyPairGenerator.getInstance("X25519").generateKeyPair();
+        return withDParameter(((XECPrivateKey) keyPair.getPrivate()).getScalar().get())
+            .withXCoordinate(((XECPublicKey) keyPair.getPublic()).getU().toByteArray());
+      } catch (GeneralSecurityException e) {
+        throw new CoseException("Failed to generate key pair", e);
+      }
     }
   }
 
