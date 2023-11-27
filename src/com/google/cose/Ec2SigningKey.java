@@ -26,16 +26,17 @@ import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
+import com.google.crypto.tink.subtle.EcdsaSignJce;
+import com.google.crypto.tink.subtle.EcdsaVerifyJce;
+import com.google.crypto.tink.subtle.EllipticCurves.EcdsaEncoding;
+import com.google.crypto.tink.subtle.Enums.HashType;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
-import java.security.Signature;
-import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECGenParameterSpec;
@@ -278,8 +279,7 @@ public final class Ec2SigningKey extends Ec2Key {
     return new Builder();
   }
 
-  public byte[] sign(Algorithm algorithm, byte[] message, String provider)
-      throws CborException, CoseException {
+  public byte[] sign(Algorithm algorithm, byte[] message) throws CborException, CoseException {
     if (keyPair.getPrivate() == null) {
       throw new CoseException("Missing key material for signing.");
     }
@@ -288,42 +288,39 @@ public final class Ec2SigningKey extends Ec2Key {
     verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_SIGN);
 
     try {
-      Signature signature;
-      if (provider == null) {
-        signature = Signature.getInstance(algorithm.getJavaAlgorithmId());
-      } else {
-        signature = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
-      }
-      signature.initSign(keyPair.getPrivate());
-      signature.update(message);
-      return signature.sign();
-    } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException
-        | NoSuchProviderException e) {
-      throw new CoseException("Error while signing message.", e);
+      return new EcdsaSignJce(
+              (ECPrivateKey) keyPair.getPrivate(), getHashType(algorithm), EcdsaEncoding.DER)
+          .sign(message);
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Failed signing message.", e);
     }
   }
 
-  public void verify(Algorithm algorithm, byte[] message, byte[] signature, String provider)
+  public void verify(Algorithm algorithm, byte[] message, byte[] signature)
       throws CborException, CoseException {
     verifyAlgorithmMatchesKey(algorithm);
     verifyAlgorithmAllowedByKey(algorithm);
     verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_VERIFY);
 
     try {
-      Signature signer;
-      if (provider == null) {
-        signer = Signature.getInstance(algorithm.getJavaAlgorithmId());
-      } else {
-        signer = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
-      }
-      signer.initVerify(keyPair.getPublic());
-      signer.update(message);
-      if (!signer.verify(signature)) {
-        throw new CoseException("Failed verification.");
-      }
-    } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException
-        | SignatureException e) {
-      throw new CoseException("Error while verifying ", e);
+      new EcdsaVerifyJce(
+              (ECPublicKey) keyPair.getPublic(), getHashType(algorithm), EcdsaEncoding.DER)
+          .verify(signature, message);
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Failed verifying message.", e);
+    }
+  }
+
+  private static HashType getHashType(Algorithm algorithm) {
+    switch (algorithm) {
+      case SIGNING_ALGORITHM_ECDSA_SHA_256:
+        return HashType.SHA256;
+      case SIGNING_ALGORITHM_ECDSA_SHA_384:
+        return HashType.SHA384;
+      case SIGNING_ALGORITHM_ECDSA_SHA_512:
+        return HashType.SHA512;
+      default:
+        throw new IllegalArgumentException("Unsupported algorithm " + algorithm);
     }
   }
 }

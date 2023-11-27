@@ -26,8 +26,6 @@ import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.Headers;
-import java.security.Security;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -226,20 +224,9 @@ public class Ec2SigningKeyTest {
     byte[] message = TestUtilities.CONTENT_BYTES;
 
     Ec2SigningKey p256key = Ec2SigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256);
-    byte[] signature = p256key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, null);
+    byte[] signature = p256key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message);
 
-    p256key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, signature, null);
-  }
-
-  @Test
-  public void testBouncyCastleP256Ec2GeneratedKey_verificationWithSignature()
-      throws CborException, CoseException {
-    Security.addProvider(new BouncyCastleProvider());
-    byte[] message = TestUtilities.CONTENT_BYTES;
-
-    Ec2SigningKey p256key = Ec2SigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256);
-    byte[] signature = p256key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, "BC");
-    p256key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, signature, "BC");
+    p256key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, signature);
   }
 
   @Test
@@ -248,19 +235,8 @@ public class Ec2SigningKeyTest {
     byte[] message = TestUtilities.CONTENT_BYTES;
 
     Ec2SigningKey p384key = Ec2SigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384);
-    byte[] signature = p384key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384, message, null);
-    p384key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384, message, signature, null);
-  }
-
-  @Test
-  public void testBouncyCastleP384Ec2GeneratedKey_verificationWithSignature()
-      throws CborException, CoseException {
-    Security.addProvider(new BouncyCastleProvider());
-    byte[] message = TestUtilities.CONTENT_BYTES;
-
-    Ec2SigningKey p384key = Ec2SigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384);
-    byte[] signature = p384key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384, message, "BC");
-    p384key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384, message, signature, "BC");
+    byte[] signature = p384key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384, message);
+    p384key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_384, message, signature);
   }
 
   @Test
@@ -269,19 +245,8 @@ public class Ec2SigningKeyTest {
     byte[] message = TestUtilities.CONTENT_BYTES;
 
     Ec2SigningKey p521key = Ec2SigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512);
-    byte[] signature = p521key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512, message, null);
-    p521key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512, message, signature, null);
-  }
-
-  @Test
-  public void testBouncyCastleP521Ec2GeneratedKey_verificationWithSignature()
-      throws CborException, CoseException {
-    Security.addProvider(new BouncyCastleProvider());
-    byte[] message = TestUtilities.CONTENT_BYTES;
-
-    Ec2SigningKey p521key = Ec2SigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512);
-    byte[] signature = p521key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512, message, "BC");
-    p521key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512, message, signature, "BC");
+    byte[] signature = p521key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512, message);
+    p521key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_512, message, signature);
   }
 
   @Test

@@ -267,8 +267,9 @@ public class CoseUtils {
     } else {
       try {
         int signatureLen = 2 * getKeySizeFromAlgorithm(algorithm);
-        signature = EllipticCurves.ecdsaDer2Ieee(
-            ((Ec2SigningKey) key).sign(algorithm, toBeSigned, null), signatureLen);
+        signature =
+            EllipticCurves.ecdsaDer2Ieee(
+                ((Ec2SigningKey) key).sign(algorithm, toBeSigned), signatureLen);
       } catch (GeneralSecurityException e) {
         throw new AssertionError(e);
       }
@@ -311,7 +312,7 @@ public class CoseUtils {
       } catch (GeneralSecurityException e) {
         throw new CoseException("Invalid signature.", e);
       }
-      ((Ec2SigningKey) key).verify(algorithm, encodedStructure, signature, null);
+      ((Ec2SigningKey) key).verify(algorithm, encodedStructure, signature);
     } else {
       ((OkpSigningKey) key).verify(algorithm, encodedStructure, message.getSignature());
     }
