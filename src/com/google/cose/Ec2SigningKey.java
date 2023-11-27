@@ -16,6 +16,12 @@
 
 package com.google.cose;
 
+import static com.google.crypto.tink.subtle.EllipticCurves.fieldSizeInBytes;
+import static com.google.crypto.tink.subtle.EllipticCurves.generateKeyPair;
+import static com.google.crypto.tink.subtle.EllipticCurves.getCurveSpec;
+import static com.google.crypto.tink.subtle.SubtleUtil.bytes2Integer;
+import static com.google.crypto.tink.subtle.SubtleUtil.integer2Bytes;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
@@ -26,11 +32,10 @@ import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
-import java.math.BigInteger;
-import java.security.InvalidAlgorithmParameterException;
+import com.google.crypto.tink.subtle.EllipticCurves.CurveType;
+import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -38,13 +43,10 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECGenParameterSpec;
 import java.security.spec.ECPoint;
 
 /** Implements EC2 COSE_Key spec for signing purposes. */
 public final class Ec2SigningKey extends Ec2Key {
-  private static final int SIGN_POSITIVE = 1;
-
   private KeyPair keyPair;
 
   public Ec2SigningKey(DataItem cborKey) throws CborException, CoseException {
@@ -73,7 +75,7 @@ public final class Ec2SigningKey extends Ec2Key {
       if (key.length == 0) {
         throw new CoseException("Cannot decode private key. Missing coordinate information.");
       }
-      privateKey = CoseUtils.getEc2PrivateKeyFromInteger(curve, new BigInteger(SIGN_POSITIVE, key));
+      privateKey = CoseUtils.getEc2PrivateKeyFromInteger(curve, bytes2Integer(key));
     } else {
       privateKey = null;
     }
@@ -96,11 +98,9 @@ public final class Ec2SigningKey extends Ec2Key {
       throw new IllegalStateException("X coordinate provided but Y coordinate is missing.");
     }
     final ByteString yCor = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_Y));
-    final PublicKey publicKey = CoseUtils.getEc2PublicKeyFromCoordinates(
-        curve,
-        new BigInteger(SIGN_POSITIVE, xCor.getBytes()),
-        new BigInteger(SIGN_POSITIVE, yCor.getBytes())
-    );
+    final PublicKey publicKey =
+        CoseUtils.getEc2PublicKeyFromCoordinates(
+            curve, bytes2Integer(xCor.getBytes()), bytes2Integer(yCor.getBytes()));
     keyPair = new KeyPair(publicKey, privateKey);
   }
 
@@ -118,69 +118,41 @@ public final class Ec2SigningKey extends Ec2Key {
     return (ECPublicKey) this.keyPair.getPublic();
   }
 
-  // Big endian: Do not reuse for little endian encodings
-  private static byte[] arrayFromBigNum(BigInteger num, int keySize)
-      throws IllegalArgumentException {
-    // Roundup arithmetic from bits to bytes.
-    byte[] keyBytes = new byte[(keySize + 7) / 8];
-    byte[] keyBytes2 = num.toByteArray();
-    if (keyBytes.length == keyBytes2.length) {
-      return keyBytes2;
-    }
-    if (keyBytes2.length > keyBytes.length) {
-      // There should be no more than one padding(0) byte, invalid key otherwise.
-      if (keyBytes2.length - keyBytes.length > 1 && keyBytes2[0] != 0) {
-        throw new IllegalArgumentException();
-      }
-      System.arraycopy(keyBytes2, keyBytes2.length - keyBytes.length, keyBytes, 0, keyBytes.length);
-    } else {
-      System.arraycopy(
-          keyBytes2, 0, keyBytes, keyBytes.length - keyBytes2.length, keyBytes2.length);
-    }
-    return keyBytes;
-  }
-
   /**
    * Generates a COSE formatted Ec2 signing key given a specific algorithm. The selected key size is
    * chosen based on section 6.2.1 of RFC 5656
    */
   public static Ec2SigningKey generateKey(Algorithm algorithm) throws CborException, CoseException {
-    KeyPair keyPair;
-    int keySize;
     int header;
-    String curveName;
-
+    CurveType curveType;
     switch (algorithm) {
       case SIGNING_ALGORITHM_ECDSA_SHA_256:
-        curveName = "secp256r1";
-        keySize = 256;
+        curveType = CurveType.NIST_P256;
         header = Headers.CURVE_EC2_P256;
         break;
 
       case SIGNING_ALGORITHM_ECDSA_SHA_384:
-        curveName = "secp384r1";
-        keySize = 384;
+        curveType = CurveType.NIST_P384;
         header = Headers.CURVE_EC2_P384;
         break;
 
       case SIGNING_ALGORITHM_ECDSA_SHA_512:
-        curveName = "secp521r1";
-        keySize = 521;
+        curveType = CurveType.NIST_P521;
         header = Headers.CURVE_EC2_P521;
         break;
 
       default:
         throw new CoseException("Unsupported algorithm curve: " + algorithm.getJavaAlgorithmId());
     }
+
+    KeyPair keyPair;
     try {
-      ECGenParameterSpec paramSpec = new ECGenParameterSpec(curveName);
-      KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
-      gen.initialize(paramSpec);
-      keyPair = gen.genKeyPair();
+      keyPair = generateKeyPair(curveType);
 
       ECPoint pubPoint = ((ECPublicKey) keyPair.getPublic()).getW();
-      byte[] x = arrayFromBigNum(pubPoint.getAffineX(), keySize);
-      byte[] y = arrayFromBigNum(pubPoint.getAffineY(), keySize);
+      int keySize = fieldSizeInBytes(getCurveSpec(curveType).getCurve());
+      byte[] x = integer2Bytes(pubPoint.getAffineX(), keySize);
+      byte[] y = integer2Bytes(pubPoint.getAffineY(), keySize);
 
       byte[] privEncodedKey = keyPair.getPrivate().getEncoded();
 
@@ -192,10 +164,8 @@ public final class Ec2SigningKey extends Ec2Key {
           .withCurve(header)
           .withAlgorithm(algorithm)
           .build();
-    } catch (NoSuchAlgorithmException e) {
-      throw new CoseException("No provider for algorithm: " + algorithm.getJavaAlgorithmId(), e);
-    } catch (InvalidAlgorithmParameterException e) {
-      throw new CoseException("The curve is not supported: " + algorithm.getJavaAlgorithmId(), e);
+    } catch (GeneralSecurityException e) {
+      throw new CoseException("Failed generating key.", e);
     } catch (IllegalArgumentException e) {
       throw new CoseException(
           "Invalid Coordinates generated for: " + algorithm.getJavaAlgorithmId(), e);
