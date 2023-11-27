@@ -16,6 +16,9 @@
 
 package com.google.cose.utils;
 
+import static com.google.crypto.tink.subtle.EllipticCurves.ecdsaDer2Ieee;
+import static com.google.crypto.tink.subtle.EllipticCurves.ecdsaIeee2Der;
+
 import co.nstant.in.cbor.CborBuilder;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.builder.ArrayBuilder;
@@ -41,11 +44,9 @@ import com.google.cose.structure.MacStructure;
 import com.google.cose.structure.MacStructure.MacContext;
 import com.google.cose.structure.SignStructure;
 import com.google.cose.structure.SignStructure.SignatureContext;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.security.AlgorithmParameters;
+import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -58,13 +59,6 @@ import java.security.spec.ECPublicKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
-import java.util.Arrays;
-import org.bouncycastle.asn1.ASN1Encodable;
-import org.bouncycastle.asn1.ASN1InputStream;
-import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1Primitive;
-import org.bouncycastle.asn1.ASN1Sequence;
-import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
@@ -280,9 +274,12 @@ public class CoseUtils {
     if (key instanceof OkpSigningKey) {
       signature = ((OkpSigningKey) key).sign(algorithm, toBeSigned);
     } else {
-      signature = signatureDerToCose(
-          ((Ec2SigningKey) key).sign(algorithm, toBeSigned, null),
-          algorithm);
+      signature = ((Ec2SigningKey) key).sign(algorithm, toBeSigned, null);
+      try {
+        signature = ecdsaDer2Ieee(signature, 2 * getKeySizeFromAlgorithm(algorithm));
+      } catch (GeneralSecurityException e) {
+        throw new AssertionError(e);
+      }
     }
 
     return Sign1Message.builder()
@@ -313,86 +310,16 @@ public class CoseUtils {
         SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad, signedMessage
     ).serialize();
     if (key instanceof Ec2SigningKey) {
-      byte[] signature = signatureCoseToDer(message.getSignature());
+      byte[] signature;
+      try {
+        signature = ecdsaIeee2Der(message.getSignature());
+      } catch (GeneralSecurityException e) {
+        throw new CoseException("Invalid signature.", e);
+      }
       ((Ec2SigningKey) key).verify(algorithm, encodedStructure, signature, null);
     } else {
       ((OkpSigningKey) key).verify(algorithm, encodedStructure, message.getSignature());
     }
-  }
-
-  private static byte[] signatureCoseToDer(byte[] signature) {
-    // r and s are always positive and may use all bits so use the constructor which
-    // parses them as unsigned.
-    BigInteger r = new BigInteger(1, Arrays.copyOfRange(
-        signature, 0, signature.length / 2));
-    BigInteger s = new BigInteger(1, Arrays.copyOfRange(
-        signature, signature.length / 2, signature.length));
-
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try {
-      DERSequenceGenerator seq = new DERSequenceGenerator(baos);
-      seq.addObject(new ASN1Integer(r.toByteArray()));
-      seq.addObject(new ASN1Integer(s.toByteArray()));
-      seq.close();
-    } catch (IOException e) {
-      throw new IllegalStateException("Error generating DER signature", e);
-    }
-    return baos.toByteArray();
-  }
-
-  /*
-   * From RFC 8152 section 8.1 ECDSA:
-   *
-   * The signature algorithm results in a pair of integers (R, S).  These
-   * integers will be the same length as the length of the key used for
-   * the signature process.  The signature is encoded by converting the
-   * integers into byte strings of the same length as the key size.  The
-   * length is rounded up to the nearest byte and is left padded with zero
-   * bits to get to the correct length.  The two integers are then
-   * concatenated together to form a byte string that is the resulting
-   * signature.
-   */
-  private static byte[] signatureDerToCose(byte[] signature, Algorithm algorithm)
-      throws CoseException {
-    ASN1Primitive asn1;
-    try {
-      asn1 = new ASN1InputStream(new ByteArrayInputStream(signature)).readObject();
-    } catch (IOException e) {
-      throw new IllegalArgumentException("Error decoding DER signature", e);
-    }
-    if (!(asn1 instanceof ASN1Sequence)) {
-      throw new IllegalArgumentException("Not a ASN1 sequence");
-    }
-    ASN1Encodable[] asn1Encodables = ((ASN1Sequence) asn1).toArray();
-    if (asn1Encodables.length != 2) {
-      throw new IllegalArgumentException("Expected two items in sequence");
-    }
-    if (!(asn1Encodables[0].toASN1Primitive() instanceof ASN1Integer)) {
-      throw new IllegalArgumentException("First item is not an integer");
-    }
-    BigInteger r = ((ASN1Integer) asn1Encodables[0].toASN1Primitive()).getValue();
-    if (!(asn1Encodables[1].toASN1Primitive() instanceof ASN1Integer)) {
-      throw new IllegalArgumentException("Second item is not an integer");
-    }
-    BigInteger s = ((ASN1Integer) asn1Encodables[1].toASN1Primitive()).getValue();
-
-    byte[] rBytes = stripLeadingZeroes(r.toByteArray());
-    byte[] sBytes = stripLeadingZeroes(s.toByteArray());
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    int keySize = getKeySizeFromAlgorithm(algorithm);
-    try {
-      for (int n = 0; n < keySize - rBytes.length; n++) {
-        baos.write(0x00);
-      }
-      baos.write(rBytes);
-      for (int n = 0; n < keySize - sBytes.length; n++) {
-        baos.write(0x00);
-      }
-      baos.write(sBytes);
-    } catch (IOException e) {
-      throw new CoseException("Error while converting signature to cose spec.", e);
-    }
-    return baos.toByteArray();
   }
 
   private static int getKeySizeFromAlgorithm(Algorithm algorithm) {
@@ -406,15 +333,6 @@ public class CoseUtils {
       default:
         throw new IllegalArgumentException("Unsupported algorithm " + algorithm);
     }
-  }
-
-  private static byte[] stripLeadingZeroes(byte[] value) {
-    for (int i = 0; i < value.length; i++) {
-      if (value[i] != 0x00) {
-        return Arrays.copyOfRange(value, i, value.length);
-      }
-    }
-    return new byte[0];
   }
 
   private static byte[] getMessageFromDetachedOrPayload(byte[] payloadMessage,
