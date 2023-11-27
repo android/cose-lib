@@ -32,15 +32,15 @@ import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
+import com.google.crypto.tink.subtle.EcdsaSignJce;
+import com.google.crypto.tink.subtle.EcdsaVerifyJce;
 import com.google.crypto.tink.subtle.EllipticCurves.CurveType;
+import com.google.crypto.tink.subtle.EllipticCurves.EcdsaEncoding;
+import com.google.crypto.tink.subtle.Enums.HashType;
 import java.security.GeneralSecurityException;
-import java.security.InvalidKeyException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.Signature;
-import java.security.SignatureException;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPoint;
@@ -257,18 +257,17 @@ public final class Ec2SigningKey extends Ec2Key {
     verifyAlgorithmAllowedByKey(algorithm);
     verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_SIGN);
 
+    ECPrivateKey key = (ECPrivateKey) keyPair.getPrivate();
     try {
-      Signature signature;
       if (provider == null) {
-        signature = Signature.getInstance(algorithm.getJavaAlgorithmId());
-      } else {
-        signature = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
+        return new EcdsaSignJce(key, getHashType(algorithm), EcdsaEncoding.DER).sign(message);
       }
-      signature.initSign(keyPair.getPrivate());
+
+      Signature signature = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
+      signature.initSign(key);
       signature.update(message);
       return signature.sign();
-    } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException
-        | NoSuchProviderException e) {
+    } catch (GeneralSecurityException e) {
       throw new CoseException("Error while signing message.", e);
     }
   }
@@ -279,21 +278,35 @@ public final class Ec2SigningKey extends Ec2Key {
     verifyAlgorithmAllowedByKey(algorithm);
     verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_VERIFY);
 
+    ECPublicKey key = (ECPublicKey) keyPair.getPublic();
     try {
-      Signature signer;
       if (provider == null) {
-        signer = Signature.getInstance(algorithm.getJavaAlgorithmId());
-      } else {
-        signer = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
+        new EcdsaVerifyJce(key, getHashType(algorithm), EcdsaEncoding.DER)
+            .verify(signature, message);
+        return;
       }
-      signer.initVerify(keyPair.getPublic());
+
+      Signature signer = Signature.getInstance(algorithm.getJavaAlgorithmId(), provider);
+      signer.initVerify(key);
       signer.update(message);
       if (!signer.verify(signature)) {
         throw new CoseException("Failed verification.");
       }
-    } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException
-        | SignatureException e) {
+    } catch (GeneralSecurityException e) {
       throw new CoseException("Error while verifying ", e);
+    }
+  }
+
+  private static HashType getHashType(Algorithm algorithm) {
+    switch (algorithm) {
+      case SIGNING_ALGORITHM_ECDSA_SHA_256:
+        return HashType.SHA256;
+      case SIGNING_ALGORITHM_ECDSA_SHA_384:
+        return HashType.SHA384;
+      case SIGNING_ALGORITHM_ECDSA_SHA_512:
+        return HashType.SHA512;
+      default:
+        throw new IllegalArgumentException("Unsupported algorithm " + algorithm);
     }
   }
 }
