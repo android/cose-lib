@@ -263,11 +263,10 @@ public class CoseUtils {
     if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
-    byte[] message = getMessageFromDetachedOrPayload(payloadMessage, detachedContent);
 
     byte[] toBeSigned = new SignStructure(
-        SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad, message
-    ).serialize();
+        SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad,
+        getMessageFromDetachedOrPayload(payloadMessage, detachedContent)).serialize();
 
     byte[] signature;
     if (key instanceof OkpSigningKey) {
@@ -281,7 +280,7 @@ public class CoseUtils {
     return Sign1Message.builder()
         .withProtectedHeaders(protectedHeaders)
         .withUnprotectedHeaders(unprotectedHeaders)
-        .withMessage(message)
+        .withMessage(payloadMessage)
         .withSignature(signature)
         .build();
   }
@@ -294,12 +293,9 @@ public class CoseUtils {
     }
 
     if (algorithm == null) {
-      Integer alg = key.getAlgorithm();
-      if (alg == null) {
-        throw new CoseException(
-            "No algorithm provided, and Cosekey does not contain any algorithm either.");
-      }
-      algorithm = Algorithm.fromCoseAlgorithmId(alg.intValue());
+      algorithm = Algorithm.fromCoseAlgorithmId(
+          CborUtils.asInteger(
+              message.findAttributeInProtectedHeaders(Headers.MESSAGE_HEADER_ALGORITHM)));
     }
 
     Map protectedHeaders = message.getProtectedHeaders();
