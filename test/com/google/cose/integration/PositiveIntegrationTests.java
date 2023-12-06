@@ -32,8 +32,6 @@ import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.security.Security;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,12 +59,13 @@ public class PositiveIntegrationTests {
   }
 
   @Test
-  public void testEc2SignAndVerifyWithPkcs8EncodedKeyBytesJCE() throws CborException, CoseException {
+  public void testEc2SignAndVerifyWithPkcs8EncodedKeyBytes() throws CborException, CoseException {
     byte[] message = TestUtilities.CONTENT_BYTES;
     String x = "4A6C8B7DF241AD4AB03BE78F5AFCAD498496B28B93DC4FA01353CD3848A0A9A7";
     String y = "BCB5A7A766DEF13A8DA6A54101062630DA04F486EA44A28A25AB3D6C0722B5C2";
-    String priEncStr = "3041020100301306072A8648CE3D020106082A8648CE3D030107042730250201010420DE7B726"
-        + "1710775352BF3C0669FA54229D9B2998EE9265645A3AF9F2FEFC93968";
+    String priEncStr =
+        "3041020100301306072A8648CE3D020106082A8648CE3D030107042730250201010420DE7B"
+            + "7261710775352BF3C0669FA54229D9B2998EE9265645A3AF9F2FEFC93968";
     byte[] priEnc = TestUtilities.hexStringToByteArray(priEncStr);
     Ec2SigningKey key = Ec2SigningKey.builder()
         .withPrivateKeyRepresentation().withPkcs8EncodedBytes(priEnc)
@@ -74,29 +73,8 @@ public class PositiveIntegrationTests {
         .withYCoordinate(TestUtilities.hexStringToByteArray(y))
         .withCurve(Headers.CURVE_EC2_P256)
         .build();
-    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, null);
-    key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, signature, null);
-  }
-
-  @Test
-  public void testEc2SignAndVerifyWithPkcs8EncodedKeyBytesBC() throws CborException, CoseException {
-    Security.addProvider(new BouncyCastleProvider());
-    byte[] message = TestUtilities.CONTENT_BYTES;
-    String x = "7578E06A498E413E548B9CC39D5A606BD00DE7F6AA71D81439698F60F8785DA0";
-    String y = "38781826E5B085CFEC878FACA17FA378CE310259E72EE19C5F743AF0647959A1";
-    String priEncStr = "308193020100301306072A8648CE3D020106082A8648CE3D030107047930770201010420DB"
-        + "21CE777876E3CF26BCCE2E46892C7DBC9145438FB5500A9B716ADEB2A146A6A00A06082A8648CE3D030107A"
-        + "144034200047578E06A498E413E548B9CC39D5A606BD00DE7F6AA71D81439698F60F8785DA038781826E5B0"
-        + "85CFEC878FACA17FA378CE310259E72EE19C5F743AF0647959A1";
-    byte[] priEnc = TestUtilities.hexStringToByteArray(priEncStr);
-    Ec2SigningKey key = Ec2SigningKey.builder()
-        .withPrivateKeyRepresentation().withPkcs8EncodedBytes(priEnc)
-        .withXCoordinate(TestUtilities.hexStringToByteArray(x))
-        .withYCoordinate(TestUtilities.hexStringToByteArray(y))
-        .withCurve(Headers.CURVE_EC2_P256)
-        .build();
-    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, "BC");
-    key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, signature, "BC");
+    byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message);
+    key.verify(Algorithm.SIGNING_ALGORITHM_ECDSA_SHA_256, message, signature);
   }
 
   @Test
