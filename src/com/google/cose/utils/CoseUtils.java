@@ -66,6 +66,7 @@ import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
 public class CoseUtils {
   private static final String EC_PARAMETER_SPEC = "EC";
@@ -148,8 +149,15 @@ public class CoseUtils {
   public static PublicKey getEc2PublicKeyFromCoordinates(int curve, BigInteger x, BigInteger y)
       throws CoseException {
     try {
+      final String curveName = getEc2CoseCurveName(curve);
+      final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(curveName);
+      if (spec == null) {
+        throw new IllegalStateException("Unsupported curve: " + curveName);
+      }
+      spec.getCurve().validatePoint(x, y);
+
       final AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      params.init(new ECGenParameterSpec(getEc2CoseCurveName(curve)));
+      params.init(new ECGenParameterSpec(curveName));
       final ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
 
       final ECPoint ecPoint = new ECPoint(x, y);
