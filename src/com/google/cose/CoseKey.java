@@ -180,6 +180,18 @@ public abstract class CoseKey {
       return cborKey;
     }
 
+    public T copyFrom(CoseKey key) {
+      keyType = key.keyType;
+      keyId = key.keyId;
+      algorithm = (key.algorithm == null) ? null : Algorithm.fromCoseAlgorithmId(key.algorithm);
+      operations.clear();
+      if (key.operations != null) {
+        operations.addAll(key.operations);
+      }
+      baseIv = key.baseIv;
+      return self();
+    }
+
     public T withKeyType(int keyType) {
       this.keyType = keyType;
       return self();

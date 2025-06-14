@@ -19,6 +19,7 @@ package com.google.cose;
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.DataItem;
 import com.google.cose.exceptions.CoseException;
+import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
 
@@ -40,6 +41,30 @@ public final class Ec2KeyAgreementKey extends Ec2Key {
 
   public static Ec2KeyAgreementKey decode(DataItem cborKey) throws CborException, CoseException {
     return new Ec2KeyAgreementKey(cborKey);
+  }
+
+  @Override
+  public Ec2KeyAgreementKey getPublic() throws CborException, CoseException {
+    if (keyPair.getPrivate() == null) {
+      return this;
+    } else {
+      return builder().copyFrom(this).withPrivateKeyRepresentation().withDParameter(null).build();
+    }
+  }
+
+  /** Generates a COSE formatted Ec2 key agreement key given a specific algorithm and curve. */
+  public static Ec2KeyAgreementKey generateKey(Algorithm algorithm, int curve)
+      throws CborException, CoseException {
+    switch (algorithm) {
+      case ECDH_ES_HKDF_256:
+        return builder()
+            .withGeneratedKeyPair(curve)
+            .withAlgorithm(algorithm)
+            .build();
+
+      default:
+        throw new CoseException("Unsupported algorithm: " + algorithm.getJavaAlgorithmId());
+    }
   }
 
   public static class Builder extends Ec2Key.Builder<Builder> {
