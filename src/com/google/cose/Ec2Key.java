@@ -1,5 +1,7 @@
 package com.google.cose;
 
+import static com.google.crypto.tink.subtle.SubtleUtil.bytes2Integer;
+
 import co.nstant.in.cbor.CborException;
 import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
@@ -11,15 +13,12 @@ import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.CoseUtils;
 import com.google.cose.utils.Headers;
-import java.math.BigInteger;
 import java.security.interfaces.ECPublicKey;
 
 /**
  * Abstract class for generic Ec2 key
  */
 public abstract class Ec2Key extends CoseKey {
-  private static final int SIGN_POSITIVE = 1;
-
   private ECPublicKey publicKey;
 
   Ec2Key(DataItem cborKey) throws CborException, CoseException {
@@ -46,11 +45,10 @@ public abstract class Ec2Key extends CoseKey {
       throw new IllegalStateException("X coordinate provided but Y coordinate is missing.");
     }
     final ByteString yCor = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_Y));
-    publicKey = (ECPublicKey) CoseUtils.getEc2PublicKeyFromCoordinates(
-        curve,
-        new BigInteger(SIGN_POSITIVE, xCor.getBytes()),
-        new BigInteger(SIGN_POSITIVE, yCor.getBytes())
-    );
+    publicKey =
+        (ECPublicKey)
+            CoseUtils.getEc2PublicKeyFromCoordinates(
+                curve, bytes2Integer(xCor.getBytes()), bytes2Integer(yCor.getBytes()));
   }
 
   public ECPublicKey getPublicKey() {
