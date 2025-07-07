@@ -43,6 +43,7 @@ public abstract class OkpKey extends CoseKey {
   }
 
   public BigInteger getPublicKeyBytesAsBigInteger() {
+    byte[] publicKeyBytes = getPublicKeyBytes();
     // Reverse the bytes to get the correct big-endian representation.
     byte[] reversedBytes = new byte[publicKeyBytes.length];
     for (int i = 0; i < publicKeyBytes.length; i++) {
