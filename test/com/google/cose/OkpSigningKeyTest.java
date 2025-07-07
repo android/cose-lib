@@ -73,6 +73,8 @@ public class OkpSigningKeyTest {
 
     Assert.assertArrayEquals(keyId, rebuiltKey.getKeyId());
     Assert.assertArrayEquals(keyWithConstructor.serialize(), rebuiltKey.serialize());
+    Assert.assertEquals(keyWithConstructor.getPublicKeyBytesAsBigInteger(), 
+        rebuiltKey.getPublicKeyBytesAsBigInteger());
   }
 
   @Test
@@ -185,5 +187,13 @@ public class OkpSigningKeyTest {
     byte[] signature = okpKey.sign(Algorithm.SIGNING_ALGORITHM_EDDSA, TestUtilities.CONTENT_BYTES);
 
     okpKey.verify(Algorithm.SIGNING_ALGORITHM_EDDSA, TestUtilities.CONTENT_BYTES, signature);
+  }
+
+  @Test
+  public void testPublicKeyAsBigInteger() throws CborException, CoseException {
+    OkpSigningKey key = OkpSigningKey.builder().withXCoordinate(X_BYTES).build();
+    Assert.assertEquals(
+        "11903303657706407974989296177215005343713679411332034699907763981919547054807",
+        key.getPublicKeyBytesAsBigInteger().toString());
   }
 }
