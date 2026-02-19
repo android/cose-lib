@@ -80,17 +80,28 @@ public class Ec2SigningKeyTest {
   }
 
   @Test
-  public void testConversion() throws CborException, CoseException {
-    final String cborString = "A4010220012158205A88D182BCE5F42EFA59943F33359D2E8A968FF289D93E5FA44"
-        + "4B624343167FE225820B16E8CF858DDC7690407BA61D4C338237A8CFCF3DE6AA672FC60A557AA32FC67";
-    final ByteString x = new ByteString(X_BYTES);
-    final ByteString y = new ByteString(Y_BYTES);
-    final Ec2SigningKey sKey = Ec2SigningKey.parse(TestUtilities.hexStringToByteArray(cborString));
-    Assert.assertEquals(Headers.KEY_TYPE_EC2, sKey.getKeyType());
-    Assert.assertEquals(new UnsignedInteger(Headers.CURVE_EC2_P256),
-        sKey.getLabels().get(Headers.KEY_PARAMETER_CURVE));
-    Assert.assertEquals(x, sKey.getLabels().get(Headers.KEY_PARAMETER_X));
-    Assert.assertEquals(y, sKey.getLabels().get(Headers.KEY_PARAMETER_Y));
+  public void testCoordinatesNotOnCurve() {
+    final int[] allCurves = new int[]{
+        Headers.CURVE_EC2_P256,
+        Headers.CURVE_EC2_P384,
+        Headers.CURVE_EC2_P521
+    };
+
+    for (int curve: allCurves) {
+      final Map map = new Map();
+      map.put(new UnsignedInteger(Headers.KEY_PARAMETER_KEY_TYPE),
+              new UnsignedInteger(Headers.KEY_TYPE_EC2));
+      map.put(new NegativeInteger(Headers.KEY_PARAMETER_CURVE), new UnsignedInteger(curve));
+      map.put(new NegativeInteger(Headers.KEY_PARAMETER_X),
+              new ByteString(
+                  TestUtilities.hexStringToByteArray(
+                      "59cc8d401bbd23517c7b5e948d269190d2a897e9061d1af3bc0398d77edd1400")));
+      map.put(new NegativeInteger(Headers.KEY_PARAMETER_Y),
+              new ByteString(
+                  TestUtilities.hexStringToByteArray(
+                      "77550f5dbc8b3fbbb35c099961d51a956c7228c6e36aeccb4c95ac69cf27f7e6")));
+      assertThrows(IllegalArgumentException.class, () -> new Ec2SigningKey(map));
+    }
   }
 
   @Test

@@ -10,6 +10,7 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
 import java.security.PublicKey;
+import java.math.BigInteger;
 import java.util.Arrays;
 
 /**
@@ -74,6 +75,16 @@ public abstract class OkpKey extends CoseKey {
     return curve;
   }
 
+  public BigInteger getPublicKeyBytesAsBigInteger() {
+    byte[] publicKeyBytes = getPublicKeyBytes();
+    // Reverse the bytes to get the correct big-endian representation.
+    byte[] reversedBytes = new byte[publicKeyBytes.length];
+    for (int i = 0; i < publicKeyBytes.length; i++) {
+      reversedBytes[i] = publicKeyBytes[publicKeyBytes.length - 1 - i];
+    }
+    return new BigInteger(1, reversedBytes);
+  }
+  
   /** Recursive builder to build out the Ec2 key and its subclasses. */
   abstract static class Builder<T extends Builder<T>> extends CoseKey.Builder<T> {
     private Integer curve = null;

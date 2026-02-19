@@ -66,6 +66,7 @@ import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.DERSequenceGenerator;
 import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 
 public class CoseUtils {
   private static final String EC_PARAMETER_SPEC = "EC";
@@ -148,8 +149,15 @@ public class CoseUtils {
   public static PublicKey getEc2PublicKeyFromCoordinates(int curve, BigInteger x, BigInteger y)
       throws CoseException {
     try {
+      final String curveName = getEc2CoseCurveName(curve);
+      final ECNamedCurveParameterSpec spec = ECNamedCurveTable.getParameterSpec(curveName);
+      if (spec == null) {
+        throw new IllegalStateException("Unsupported curve: " + curveName);
+      }
+      spec.getCurve().validatePoint(x, y);
+
       final AlgorithmParameters params = AlgorithmParameters.getInstance(EC_PARAMETER_SPEC);
-      params.init(new ECGenParameterSpec(getEc2CoseCurveName(curve)));
+      params.init(new ECGenParameterSpec(curveName));
       final ECParameterSpec ecParameters = params.getParameterSpec(ECParameterSpec.class);
 
       final ECPoint ecPoint = new ECPoint(x, y);
@@ -263,11 +271,10 @@ public class CoseUtils {
     if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
-    byte[] message = getMessageFromDetachedOrPayload(payloadMessage, detachedContent);
 
     byte[] toBeSigned = new SignStructure(
-        SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad, message
-    ).serialize();
+        SignatureContext.SIGNATURE1, protectedHeaders, null, externalAad,
+        getMessageFromDetachedOrPayload(payloadMessage, detachedContent)).serialize();
 
     byte[] signature;
     if (key instanceof OkpSigningKey) {
@@ -281,7 +288,7 @@ public class CoseUtils {
     return Sign1Message.builder()
         .withProtectedHeaders(protectedHeaders)
         .withUnprotectedHeaders(unprotectedHeaders)
-        .withMessage(message)
+        .withMessage(payloadMessage)
         .withSignature(signature)
         .build();
   }
@@ -294,12 +301,9 @@ public class CoseUtils {
     }
 
     if (algorithm == null) {
-      Integer alg = key.getAlgorithm();
-      if (alg == null) {
-        throw new CoseException(
-            "No algorithm provided, and Cosekey does not contain any algorithm either.");
-      }
-      algorithm = Algorithm.fromCoseAlgorithmId(alg.intValue());
+      algorithm = Algorithm.fromCoseAlgorithmId(
+          CborUtils.asInteger(
+              message.findAttributeInProtectedHeaders(Headers.MESSAGE_HEADER_ALGORITHM)));
     }
 
     Map protectedHeaders = message.getProtectedHeaders();
