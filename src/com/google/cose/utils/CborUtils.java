@@ -47,7 +47,14 @@ public class CborUtils {
    */
   public static DataItem decode(final byte[] data) throws CborException {
     final ByteArrayInputStream bais = new ByteArrayInputStream(data);
-    final List<DataItem> dataItems = new CborDecoder(bais).decode();
+    final CborDecoder decoder = new CborDecoder(bais);
+    decoder.setMaxPreallocationSize(data.length);
+    final List<DataItem> dataItems;
+    try {
+      dataItems = new CborDecoder(bais).decode();
+    } catch (OutOfMemoryError e) {
+      throw new CborException("CBOR declared size exceeds input length", e);
+    }
     if (dataItems.size() != 1) {
       throw new CborException("Byte stream cannot be decoded properly. Expected 1 item, found "
           + dataItems.size());
