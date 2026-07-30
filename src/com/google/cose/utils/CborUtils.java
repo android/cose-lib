@@ -46,6 +46,9 @@ public class CborUtils {
    * @return DataItem cbor object
    */
   public static DataItem decode(final byte[] data) throws CborException {
+    if (data == null) {
+      throw new CborException("data cannot be null");
+    }
     final ByteArrayInputStream bais = new ByteArrayInputStream(data);
     final CborDecoder decoder = new CborDecoder(bais);
     decoder.setMaxPreallocationSize(data.length);
@@ -68,6 +71,9 @@ public class CborUtils {
    * @return encoded bytes
    */
   public static byte[] encode(final DataItem dataItem) throws CborException {
+    if (dataItem == null) {
+      throw new CborException("dataItem cannot be null");
+    }
     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
     CborEncoder encoder = new CborEncoder(baos);
     encoder.encode(dataItem);
@@ -80,6 +86,9 @@ public class CborUtils {
    * @return Map object
    */
   public static Map asMap(final DataItem dataItem) throws CborException {
+    if (dataItem == null) {
+      throw new CborException("dataItem cannot be null");
+    }
     if (dataItem.getMajorType() != MajorType.MAP) {
       throw new CborException(
           String.format("Expected a map, got %s", dataItem.getMajorType().name()));
@@ -93,6 +102,9 @@ public class CborUtils {
    * @return Array object
    */
   public static Array asArray(final DataItem dataItem) throws CborException {
+    if (dataItem == null) {
+      throw new CborException("dataItem cannot be null");
+    }
     if (dataItem.getMajorType() != MajorType.ARRAY) {
       throw new CborException(
           String.format("Expected an array, got %s", dataItem.getMajorType().name()));
@@ -102,6 +114,9 @@ public class CborUtils {
 
   public static Array asArray(final DataItem dataItem, final int length,
       final String semanticName) throws CborException {
+    if (semanticName == null) {
+      throw new CborException("semanticName cannot be null");
+    }
     Array item = asArray(dataItem);
     if (item.getDataItems().size() != length) {
       throw new CborException(String.format("Expected %s to be of size %d, recieved %d",
@@ -125,6 +140,9 @@ public class CborUtils {
    * @return ByteString object
    */
   public static ByteString asByteString(final DataItem dataItem) throws CborException {
+    if (dataItem == null) {
+      throw new CborException("dataItem cannot be null");
+    }
     if (dataItem.getMajorType() != MajorType.BYTE_STRING) {
       throw new CborException(
           String.format("Expected a byte string, got %s", dataItem.getMajorType().name()));
@@ -147,6 +165,9 @@ public class CborUtils {
    * @return UnicodeString object
    */
   public static UnicodeString asUnicodeString(final DataItem dataItem) throws CborException {
+    if (dataItem == null) {
+      throw new CborException("dataItem cannot be null");
+    }
     if (dataItem.getMajorType() != MajorType.UNICODE_STRING) {
       throw new CborException(
           String.format("Expected a unicode string, got %s", dataItem.getMajorType().name()));
@@ -170,6 +191,9 @@ public class CborUtils {
    * @throws CborException if dataItem is neither UnsignedInteger not NegativeInteger
    */
   public static int asInteger(final DataItem dataItem) throws CborException {
+    if (dataItem == null) {
+      throw new CborException("dataItem cannot be null");
+    }
     if (dataItem.getMajorType() == MajorType.UNSIGNED_INTEGER) {
       return ((UnsignedInteger) dataItem).getValue().intValue();
     }
@@ -186,6 +210,9 @@ public class CborUtils {
    * @return true if the item represents NULL
    */
   public static boolean isNull(final DataItem item) {
+    if (item == null) {
+      return false;
+    }
     return (item.getMajorType() == MajorType.SPECIAL)
         && ((Special) item).getSpecialType() == SpecialType.SIMPLE_VALUE
         && ((SimpleValue) item).getSimpleValueType() == SimpleValueType.NULL;
