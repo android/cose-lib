@@ -144,9 +144,10 @@ public abstract class CoseKey {
   abstract static class Builder<T extends Builder<T>> {
     private int keyType;
     private byte[] keyId;
-    private Algorithm algorithm;
     private final Set<Integer> operations = new LinkedHashSet<>();
     private byte[] baseIv;
+
+    protected Algorithm algorithm;
 
     abstract T self();
     abstract CoseKey build() throws CborException, CoseException;
@@ -204,5 +205,21 @@ public abstract class CoseKey {
       this.baseIv = baseIv;
       return self();
     }
+  }
+
+  @Override
+  public boolean equals(Object key) {
+    if (this == key) {
+      return true;
+    }
+    if (key == null || !(key instanceof CoseKey otherKey)) {
+      return false;
+    }
+    return cborKey.equals(otherKey.cborKey);
+  }
+
+  @Override
+  public int hashCode() {
+    return cborKey.hashCode();
   }
 }
