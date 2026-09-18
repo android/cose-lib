@@ -35,6 +35,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
 /** Implements AKP COSE_Key spec for signing purposes. */
 public final class AkpSigningKey extends AkpKey {
@@ -134,11 +135,10 @@ public final class AkpSigningKey extends AkpKey {
 
     @Override
     public Builder withOperations(Integer... operations) throws CoseException {
-      for (int operation : operations) {
-        if (operation != Headers.KEY_OPERATIONS_SIGN
-            && operation != Headers.KEY_OPERATIONS_VERIFY) {
+      if (!Arrays.stream(operations)
+          .allMatch(
+              op -> op == Headers.KEY_OPERATIONS_SIGN || op == Headers.KEY_OPERATIONS_VERIFY)) {
           throw new CoseException("Signing key only supports Sign or Verify operations.");
-        }
       }
       return super.withOperations(operations);
     }
