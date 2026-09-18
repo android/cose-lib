@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [ main ]
 
+# Deny all default permissions globally
+permissions: {}
+
 jobs:
   build:
 
@@ -14,15 +17,17 @@ jobs:
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813  # v1.4.3
+      uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1  # v2.21.1
       with:
         # Using audit because some endpoints are not reliably fixed. We could
         # try to nail them down, but it would turn into a game of whack-a-mole.
         egress-policy: audit
         disable-telemetry: true
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # satisfies zizmor/unpinned-uses
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
     - name: set up JDK 21
-      uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # satisfies zizmor/unpinned-uses
+      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
       with:
         java-version: '21'
         distribution: 'temurin'
