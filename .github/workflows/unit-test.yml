@@ -20,9 +20,9 @@ jobs:
         # try to nail them down, but it would turn into a game of whack-a-mole.
         egress-policy: audit
         disable-telemetry: true
-    - uses: actions/checkout@v4 # v3
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # satisfies zizmor/unpinned-uses
     - name: set up JDK 21
-      uses: actions/setup-java@v4  # v3
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # satisfies zizmor/unpinned-uses
       with:
         java-version: '21'
         distribution: 'temurin'
