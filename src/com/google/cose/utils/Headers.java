@@ -29,6 +29,7 @@ public class Headers {
   public static final int KEY_TYPE_RESERVED = 0;
   public static final int KEY_TYPE_OKP = 1;
   public static final int KEY_TYPE_EC2 = 2;
+  public static final int KEY_TYPE_AKP = 7;
   public static final int KEY_TYPE_SYMMETRIC = 4;
 
   public static final int KEY_OPERATIONS_SIGN = 1;
@@ -56,6 +57,9 @@ public class Headers {
   public static final int KEY_PARAMETER_D = -4;
 
   public static final int KEY_PARAMETER_K = -1;
+
+  public static final int KEY_PARAMETER_AKP_PUB = -1;
+  public static final int KEY_PARAMETER_AKP_PRIV = -2;
 
   public static final int CURVE_EC2_P256 = 1;
   public static final int CURVE_EC2_P384 = 2;

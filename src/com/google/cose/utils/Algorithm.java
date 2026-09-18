@@ -20,6 +20,7 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.common.collect.ImmutableMap;
+import com.google.cose.exceptions.CoseException;
 
 /**
  * Algorithms to be used by cose library.
@@ -30,6 +31,9 @@ public enum Algorithm {
   SIGNING_ALGORITHM_ECDSA_SHA_384(-35, "SHA384withECDSA"),
   SIGNING_ALGORITHM_ECDSA_SHA_512(-36, "SHA512withECDSA"),
   SIGNING_ALGORITHM_EDDSA(-8, "NonewithEdDSA"),
+  SIGNING_ALGORITHM_MLDSA_44(-48, "ML-DSA-44"),
+  SIGNING_ALGORITHM_MLDSA_65(-49, "ML-DSA-65"),
+  SIGNING_ALGORITHM_MLDSA_87(-50, "ML-DSA-87"),
   MAC_ALGORITHM_HMAC_SHA_256_256(5, "HmacSHA256"),
   MAC_ALGORITHM_HMAC_SHA_384_384(6, "HmacSHA384"),
   MAC_ALGORITHM_HMAC_SHA_512_512(7, "HmacSHA512"),
@@ -69,7 +73,10 @@ public enum Algorithm {
     return new UnsignedInteger(coseAlgorithmId);
   }
 
-  public static Algorithm fromCoseAlgorithmId(int coseAlgorithmId) {
+  public static Algorithm fromCoseAlgorithmId(int coseAlgorithmId) throws CoseException {
+    if (!REVERSE_LOOKUP_MAP.containsKey(coseAlgorithmId)) {
+      throw new CoseException("Expecting a valid COSE algorithm, found " + coseAlgorithmId);
+    }
     return REVERSE_LOOKUP_MAP.get(coseAlgorithmId);
   }
 }
