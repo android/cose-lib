@@ -29,12 +29,8 @@ import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
-
-import java.lang.reflect.Method;
 import java.security.Provider;
 import java.security.Security;
-import java.security.spec.NamedParameterSpec;
-
 import org.conscrypt.Conscrypt;
 import org.junit.Test;
 import org.junit.runner.RunWith;
