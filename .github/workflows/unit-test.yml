@@ -22,7 +22,7 @@ jobs:
         disable-telemetry: true
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # satisfies zizmor/unpinned-uses
     - name: set up JDK 21
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # satisfies zizmor/unpinned-uses
+      uses: actions/setup-java@6a0805fcefea3d4657a47ac4c165951e33482018 # satisfies zizmor/unpinned-uses
       with:
         java-version: '21'
         distribution: 'temurin'
