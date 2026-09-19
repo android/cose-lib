@@ -33,41 +33,38 @@ import java.util.Objects;
 /** Abstract class for generic AKP key */
 public abstract class AkpKey extends CoseKey {
 
-  public static final String PROVIDER = "Conscrypt";
+  public static final String CONSCRYPT_PROVIDER = "Conscrypt";
 
   protected byte[] publicKeyBytes;
-  protected byte[] privateKeyBytes;
 
   AkpKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
-    populateKeyFromCbor();
-  }
-
-  void populateKeyFromCbor() throws CborException, CoseException {
     if (getKeyType() != Headers.KEY_TYPE_AKP) {
       throw new CoseException("Expecting KEY_TYPE_AKP (type 7), found type " + getKeyType());
     }
-
     if (getAlgorithm() == null) {
       throw new CoseException("Algorithm is required for AKP keys.");
     }
 
     Algorithm algorithm = Algorithm.fromCoseAlgorithmId(getAlgorithm());
 
-    if (!isAkpAlgorithm(algorithm)) {
+    if (algorithm == null || !isAkpAlgorithm(algorithm)) {
       throw new CoseException(
-          "Expecting an AKP signing algorithm, found " + algorithm.getJavaAlgorithmId());
+          "Expecting an AKP signing algorithm, found "
+              + (algorithm != null ? algorithm.getJavaAlgorithmId() : getAlgorithm()));
     }
+    populateKeyFromCbor();
+  }
 
+  void populateKeyFromCbor() throws CborException, CoseException {
     if (labels.containsKey(Headers.KEY_PARAMETER_AKP_PUB)) {
-      publicKeyBytes = CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PUB)).getBytes();
-    }
-    if (labels.containsKey(Headers.KEY_PARAMETER_AKP_PRIV)) {
-      privateKeyBytes =
-          CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PRIV)).getBytes();
-    }
-
-    if (publicKeyBytes == null && privateKeyBytes == null) {
+      byte[] keyMaterial =
+          CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PUB)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Could not decode public key. Expected key material.");
+      }
+      publicKeyBytes = keyMaterial;
+    } else {
       throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
     }
   }
@@ -89,8 +86,7 @@ public abstract class AkpKey extends CoseKey {
 
   /** Recursive builder to build out the AKP key and its subclasses. */
   abstract static class Builder<T extends Builder<T>> extends CoseKey.Builder<T> {
-    protected byte[] publicKey;
-    protected byte[] privateKey;
+    private byte[] publicKey;
 
     @Override
     void verifyKeyMaterialPresentAndComplete() throws CoseException {
@@ -108,7 +104,7 @@ public abstract class AkpKey extends CoseKey {
     }
 
     boolean isKeyMaterialPresent() {
-      return publicKey != null || privateKey != null;
+      return publicKey != null && publicKey.length != 0;
     }
 
     @Override
@@ -117,25 +113,15 @@ public abstract class AkpKey extends CoseKey {
 
       Map cborKey = super.compile();
 
-      if (publicKey != null) {
+      if (publicKey != null && publicKey.length != 0) {
         cborKey.put(new NegativeInteger(Headers.KEY_PARAMETER_AKP_PUB), new ByteString(publicKey));
-      }
-      if (privateKey != null) {
-        cborKey.put(
-            new NegativeInteger(Headers.KEY_PARAMETER_AKP_PRIV), new ByteString(privateKey));
       }
       return cborKey;
     }
 
     @CanIgnoreReturnValue
     public T withPublicKey(byte[] publicKey) {
-      this.publicKey = Arrays.copyOf(publicKey, publicKey.length);
-      return self();
-    }
-
-    @CanIgnoreReturnValue
-    public T withPrivateKey(byte[] privateKey) {
-      this.privateKey = Arrays.copyOf(privateKey, privateKey.length);
+      this.publicKey = (publicKey != null) ? Arrays.copyOf(publicKey, publicKey.length) : null;
       return self();
     }
   }
@@ -147,6 +133,6 @@ public abstract class AkpKey extends CoseKey {
   }
 
   public static boolean isConscryptProvider(String provider) {
-    return Objects.equals(provider, PROVIDER);
+    return Objects.equals(provider, CONSCRYPT_PROVIDER);
   }
 }

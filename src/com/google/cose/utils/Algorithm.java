@@ -20,7 +20,6 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.common.collect.ImmutableMap;
-import com.google.cose.exceptions.CoseException;
 
 /**
  * Algorithms to be used by cose library.
@@ -73,10 +72,7 @@ public enum Algorithm {
     return new UnsignedInteger(coseAlgorithmId);
   }
 
-  public static Algorithm fromCoseAlgorithmId(int coseAlgorithmId) throws CoseException {
-    if (!REVERSE_LOOKUP_MAP.containsKey(coseAlgorithmId)) {
-      throw new CoseException("Expecting a valid COSE algorithm, found " + coseAlgorithmId);
-    }
+  public static Algorithm fromCoseAlgorithmId(int coseAlgorithmId) {
     return REVERSE_LOOKUP_MAP.get(coseAlgorithmId);
   }
 }

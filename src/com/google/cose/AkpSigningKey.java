@@ -17,12 +17,15 @@
 package com.google.cose;
 
 import co.nstant.in.cbor.CborException;
+import co.nstant.in.cbor.model.ByteString;
 import co.nstant.in.cbor.model.DataItem;
 import co.nstant.in.cbor.model.Map;
+import co.nstant.in.cbor.model.NegativeInteger;
 import com.google.cose.exceptions.CoseException;
 import com.google.cose.utils.Algorithm;
 import com.google.cose.utils.CborUtils;
 import com.google.cose.utils.Headers;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -36,9 +39,12 @@ import java.security.SignatureException;
 import java.security.spec.EncodedKeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import org.bouncycastle.crypto.params.MLDSAParameters;
+import org.bouncycastle.crypto.params.MLDSAPrivateKeyParameters;
 
 /** Implements AKP COSE_Key spec for signing purposes. */
 public final class AkpSigningKey extends AkpKey {
+  private byte[] privateKeyBytes;
 
   public AkpSigningKey(DataItem cborKey) throws CborException, CoseException {
     super(cborKey);
@@ -47,6 +53,52 @@ public final class AkpSigningKey extends AkpKey {
         && !operations.contains(Headers.KEY_OPERATIONS_VERIFY)
         && !operations.contains(Headers.KEY_OPERATIONS_SIGN)) {
       throw new CoseException("Signing key requires either sign or verify operation.");
+    }
+  }
+
+  @Override
+  void populateKeyFromCbor() throws CborException, CoseException {
+    privateKeyBytes = getPrivateKeyBytesFromCbor();
+    publicKeyBytes = getPublicKeyBytesFromCbor();
+  }
+
+  private byte[] getPrivateKeyBytesFromCbor() throws CborException, CoseException {
+    if (labels.containsKey(Headers.KEY_PARAMETER_AKP_PRIV)) {
+      byte[] keyMaterial =
+          CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PRIV)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Could not decode private key. Expected key material.");
+      }
+      return keyMaterial;
+    }
+    return null;
+  }
+
+  private byte[] getPublicKeyBytesFromCbor() throws CborException, CoseException {
+    if (labels.containsKey(Headers.KEY_PARAMETER_AKP_PUB)) {
+      byte[] keyMaterial =
+          CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PUB)).getBytes();
+      if (keyMaterial.length == 0) {
+        throw new CoseException("Could not decode public key. Expected key material.");
+      }
+      return keyMaterial;
+    }
+    if (privateKeyBytes == null) {
+      throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
+    }
+    Algorithm algorithm = Algorithm.fromCoseAlgorithmId(getAlgorithm());
+    MLDSAParameters mldsaParameters =
+        switch (algorithm) {
+          case SIGNING_ALGORITHM_MLDSA_44 -> MLDSAParameters.ml_dsa_44;
+          case SIGNING_ALGORITHM_MLDSA_65 -> MLDSAParameters.ml_dsa_65;
+          case SIGNING_ALGORITHM_MLDSA_87 -> MLDSAParameters.ml_dsa_87;
+          default ->
+              throw new CoseException("Unsupported algorithm: " + algorithm.getJavaAlgorithmId());
+        };
+    try {
+      return new MLDSAPrivateKeyParameters(mldsaParameters, privateKeyBytes).getPublicKey();
+    } catch (RuntimeException e) {
+      throw new CoseException("Error while generating public key from private key bytes.", e);
     }
   }
 
@@ -121,6 +173,7 @@ public final class AkpSigningKey extends AkpKey {
 
   /** Implements builder for AkpSigningKey. */
   public static class Builder extends AkpKey.Builder<Builder> {
+    private byte[] privateKey;
 
     @Override
     public Builder self() {
@@ -128,9 +181,8 @@ public final class AkpSigningKey extends AkpKey {
     }
 
     @Override
-    public AkpSigningKey build() throws CborException, CoseException {
-      Map cborKey = compile();
-      return new AkpSigningKey(cborKey);
+    boolean isKeyMaterialPresent() {
+      return (privateKey != null && privateKey.length != 0) || super.isKeyMaterialPresent();
     }
 
     @Override
@@ -138,9 +190,25 @@ public final class AkpSigningKey extends AkpKey {
       if (!Arrays.stream(operations)
           .allMatch(
               op -> op == Headers.KEY_OPERATIONS_SIGN || op == Headers.KEY_OPERATIONS_VERIFY)) {
-          throw new CoseException("Signing key only supports Sign or Verify operations.");
+        throw new CoseException("Signing key only supports Sign or Verify operations.");
       }
       return super.withOperations(operations);
+    }
+
+    @Override
+    public AkpSigningKey build() throws CborException, CoseException {
+      Map cborKey = compile();
+      if (privateKey != null && privateKey.length != 0) {
+        cborKey.put(
+            new NegativeInteger(Headers.KEY_PARAMETER_AKP_PRIV), new ByteString(privateKey));
+      }
+      return new AkpSigningKey(cborKey);
+    }
+
+    @CanIgnoreReturnValue
+    public Builder withPrivateKey(byte[] privateKey) {
+      this.privateKey = (privateKey != null) ? Arrays.copyOf(privateKey, privateKey.length) : null;
+      return this;
     }
   }
 
@@ -196,6 +264,9 @@ public final class AkpSigningKey extends AkpKey {
 
   public void verify(Algorithm algorithm, byte[] message, byte[] signature, String provider)
       throws CborException, CoseException {
+    if (publicKeyBytes == null || publicKeyBytes.length == 0) {
+      throw new CoseException("Missing key material for verification.");
+    }
     verifyAlgorithmMatchesKey(algorithm);
     verifyAlgorithmAllowedByKey(algorithm);
     verifyOperationAllowedByKey(Headers.KEY_OPERATIONS_VERIFY);
@@ -234,7 +305,7 @@ public final class AkpSigningKey extends AkpKey {
         | InvalidKeyException
         | InvalidKeySpecException
         | SignatureException e) {
-      throw new CoseException("Error while verifying ", e);
+      throw new CoseException("Error while verifying message.", e);
     }
   }
 
