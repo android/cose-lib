@@ -209,6 +209,30 @@ public class AkpSigningKeyTest {
   }
 
   @Test
+  public void testEmptyPrivateKeyBytes() throws CborException, CoseException {
+    final String cborString = "A301070338302140";
+    CoseException exception =
+        assertThrows(
+            CoseException.class,
+            () -> AkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString)));
+    assertThat(exception)
+        .hasMessageThat()
+        .isEqualTo("Could not decode private key. Expected key material.");
+  }
+
+  @Test
+  public void testEmptyPublicKeyBytes() throws CborException, CoseException {
+    final String cborString = "A301070338302040";
+    CoseException exception =
+        assertThrows(
+            CoseException.class,
+            () -> AkpSigningKey.parse(TestUtilities.hexStringToByteArray(cborString)));
+    assertThat(exception)
+        .hasMessageThat()
+        .isEqualTo("Could not decode public key. Expected key material.");
+  }
+
+  @Test
   public void testParseKeyFailureWrongKeyOperation() throws CborException, CoseException {
     final String cborString =
         "A401070338302158200000000000000000000000000000000000000000000000000000000000000000"
@@ -327,7 +351,6 @@ public class AkpSigningKeyTest {
 
   @Test
   public void testGenerateKeyMLDSA87() throws CborException, CoseException {
-    System.out.println("provider: " + PROVIDER);
     AkpSigningKey key = AkpSigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_MLDSA_87, PROVIDER);
     assertThat(key).isNotNull();
     assertThat(key.getKeyType()).isEqualTo(Headers.KEY_TYPE_AKP);
@@ -379,7 +402,7 @@ public class AkpSigningKeyTest {
     byte[] message = TestUtilities.CONTENT_BYTES;
     AkpSigningKey key = AkpSigningKey.generateKey(Algorithm.SIGNING_ALGORITHM_MLDSA_65, PROVIDER);
 
-    String provider = AkpKey.PROVIDER;
+    String provider = AkpKey.CONSCRYPT_PROVIDER;
     byte[] signature = key.sign(Algorithm.SIGNING_ALGORITHM_MLDSA_65, message, provider);
     assertThat(signature).isNotNull();
 
@@ -393,7 +416,7 @@ public class AkpSigningKeyTest {
     AkpSigningKey key = AkpSigningKey.generateKey(algorithm, PROVIDER);
     assertThrows(IllegalArgumentException.class, () -> key.sign(algorithm, message, null));
 
-    String provider = AkpKey.PROVIDER;
+    String provider = AkpKey.CONSCRYPT_PROVIDER;
     byte[] signature = key.sign(algorithm, message, provider);
     assertThrows(
         IllegalArgumentException.class, () -> key.verify(algorithm, message, signature, null));
