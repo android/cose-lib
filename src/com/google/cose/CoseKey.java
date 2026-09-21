@@ -132,6 +132,8 @@ public abstract class CoseKey {
     switch (algorithm) {
       case SIGNING_ALGORITHM_EDDSA:
         return OkpSigningKey.generateKey();
+      case SIGNING_ALGORITHM_MLDSA_87:
+        return AkpSigningKey.generateKey(algorithm, AkpKey.CONSCRYPT_PROVIDER);
       case SIGNING_ALGORITHM_ECDSA_SHA_256:
       case SIGNING_ALGORITHM_ECDSA_SHA_384:
       case SIGNING_ALGORITHM_ECDSA_SHA_512:
