@@ -57,16 +57,15 @@ public abstract class AkpKey extends CoseKey {
   }
 
   void populateKeyFromCbor() throws CborException, CoseException {
-    if (labels.containsKey(Headers.KEY_PARAMETER_AKP_PUB)) {
-      byte[] keyMaterial =
-          CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PUB)).getBytes();
-      if (keyMaterial.length == 0) {
-        throw new CoseException("Could not decode public key. Expected key material.");
-      }
-      publicKeyBytes = keyMaterial;
-    } else {
+    if (!labels.containsKey(Headers.KEY_PARAMETER_AKP_PUB)) {
       throw new CoseException(CoseException.MISSING_KEY_MATERIAL_EXCEPTION_MESSAGE);
     }
+    byte[] keyMaterial =
+        CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PUB)).getBytes();
+    if (keyMaterial.length == 0) {
+      throw new CoseException("Could not decode public key. Expected key material.");
+    }
+    publicKeyBytes = keyMaterial;
   }
 
   void verifyAlgorithmAllowedByKey(Algorithm algorithm) throws CborException, CoseException {

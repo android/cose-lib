@@ -63,15 +63,15 @@ public final class AkpSigningKey extends AkpKey {
   }
 
   private byte[] getPrivateKeyBytesFromCbor() throws CborException, CoseException {
-    if (labels.containsKey(Headers.KEY_PARAMETER_AKP_PRIV)) {
-      byte[] keyMaterial =
-          CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PRIV)).getBytes();
-      if (keyMaterial.length == 0) {
-        throw new CoseException("Could not decode private key. Expected key material.");
-      }
-      return keyMaterial;
+    if (!labels.containsKey(Headers.KEY_PARAMETER_AKP_PRIV)) {
+      return null;
     }
-    return null;
+    byte[] keyMaterial =
+        CborUtils.asByteString(labels.get(Headers.KEY_PARAMETER_AKP_PRIV)).getBytes();
+    if (keyMaterial.length == 0) {
+      throw new CoseException("Could not decode private key. Expected key material.");
+    }
+    return keyMaterial;
   }
 
   private byte[] getPublicKeyBytesFromCbor() throws CborException, CoseException {
