@@ -26,6 +26,8 @@ import co.nstant.in.cbor.model.NegativeInteger;
 import co.nstant.in.cbor.model.Number;
 import co.nstant.in.cbor.model.UnsignedInteger;
 import com.google.common.collect.ImmutableMap;
+import com.google.cose.AkpKey;
+import com.google.cose.AkpSigningKey;
 import com.google.cose.CoseKey;
 import com.google.cose.Ec2SigningKey;
 import com.google.cose.Encrypt0Message;
@@ -268,7 +270,9 @@ public class CoseUtils {
   public static Sign1Message generateCoseSign1(CoseKey key, Map protectedHeaders,
       Map unprotectedHeaders, byte[] payloadMessage, byte[] detachedContent, byte[] externalAad,
       Algorithm algorithm) throws CborException, CoseException {
-    if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
+    if (!(key instanceof Ec2SigningKey
+        || key instanceof OkpSigningKey
+        || key instanceof AkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
 
@@ -279,10 +283,12 @@ public class CoseUtils {
     byte[] signature;
     if (key instanceof OkpSigningKey) {
       signature = ((OkpSigningKey) key).sign(algorithm, toBeSigned);
-    } else {
+    } else if (key instanceof Ec2SigningKey) {
       signature = signatureDerToCose(
           ((Ec2SigningKey) key).sign(algorithm, toBeSigned, null),
           algorithm);
+    } else {
+      signature = ((AkpSigningKey) key).sign(algorithm, toBeSigned, AkpKey.CONSCRYPT_PROVIDER);
     }
 
     return Sign1Message.builder()
@@ -296,7 +302,9 @@ public class CoseUtils {
   public static void verifyCoseSign1Message(CoseKey key, Sign1Message message,
       byte[] detachedContent, byte[] externalAad, Algorithm algorithm)
       throws CborException, CoseException {
-    if (!(key instanceof Ec2SigningKey || key instanceof OkpSigningKey)) {
+    if (!(key instanceof Ec2SigningKey
+        || key instanceof OkpSigningKey
+        || key instanceof AkpSigningKey)) {
       throw new CoseException("Incompatible key used.");
     }
 
@@ -315,8 +323,11 @@ public class CoseUtils {
     if (key instanceof Ec2SigningKey) {
       byte[] signature = signatureCoseToDer(message.getSignature());
       ((Ec2SigningKey) key).verify(algorithm, encodedStructure, signature, null);
-    } else {
+    } else if (key instanceof OkpSigningKey) {
       ((OkpSigningKey) key).verify(algorithm, encodedStructure, message.getSignature());
+    } else {
+      ((AkpSigningKey) key)
+          .verify(algorithm, encodedStructure, message.getSignature(), AkpKey.CONSCRYPT_PROVIDER);
     }
   }
 
