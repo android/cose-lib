@@ -287,8 +287,10 @@ public class CoseUtils {
       signature = signatureDerToCose(
           ((Ec2SigningKey) key).sign(algorithm, toBeSigned, null),
           algorithm);
-    } else {
+    } else if (key instanceof AkpSigningKey) {
       signature = ((AkpSigningKey) key).sign(algorithm, toBeSigned, AkpKey.CONSCRYPT_PROVIDER);
+    } else {
+      throw new CoseException("Incompatible key used.");
     }
 
     return Sign1Message.builder()
@@ -325,9 +327,11 @@ public class CoseUtils {
       ((Ec2SigningKey) key).verify(algorithm, encodedStructure, signature, null);
     } else if (key instanceof OkpSigningKey) {
       ((OkpSigningKey) key).verify(algorithm, encodedStructure, message.getSignature());
-    } else {
+    } else if (key instanceof AkpSigningKey) {
       ((AkpSigningKey) key)
           .verify(algorithm, encodedStructure, message.getSignature(), AkpKey.CONSCRYPT_PROVIDER);
+    } else {
+      new CoseException("Incompatible key used.");
     }
   }
 
