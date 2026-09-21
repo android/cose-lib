@@ -331,7 +331,7 @@ public class CoseUtils {
       ((AkpSigningKey) key)
           .verify(algorithm, encodedStructure, message.getSignature(), AkpKey.CONSCRYPT_PROVIDER);
     } else {
-      new CoseException("Incompatible key used.");
+      throw new CoseException("Incompatible key used.");
     }
   }
 
