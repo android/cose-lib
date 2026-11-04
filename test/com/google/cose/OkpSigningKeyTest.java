@@ -121,9 +121,11 @@ public class OkpSigningKeyTest {
 
   @Test
   public void testBuilderPassOnMissingX() throws CborException, CoseException {
-    OkpSigningKey.builder()
+    OkpSigningKey signingKey = OkpSigningKey.builder()
         .withDParameter(D_BYTES)
         .build();
+    Assert.assertArrayEquals(signingKey.getPublicKeyBytes(), X_BYTES);
+    Assert.assertNotNull(signingKey.getPublicKey());
   }
 
   @Test
@@ -143,6 +145,20 @@ public class OkpSigningKeyTest {
         CoseException.class,
         () -> builder.withOperations(Headers.KEY_OPERATIONS_DECRYPT, Headers.KEY_OPERATIONS_SIGN));
     builder.build();
+  }
+
+  @Test
+  public void testGetPublic() throws CborException, CoseException {
+    OkpSigningKey.Builder builder = OkpSigningKey.builder()
+        .withXCoordinate(X_BYTES);
+    OkpSigningKey publicKey = builder.build();
+    OkpSigningKey keyPairPublic = builder
+        .withDParameter(D_BYTES)
+        .build()
+        .getPublic();
+
+    Assert.assertSame(publicKey.getPublic(), publicKey);
+    Assert.assertArrayEquals(keyPairPublic.serialize(), publicKey.serialize());
   }
 
   @Test
